@@ -1,6 +1,6 @@
 {
-  "name": "plugin-sample-vite-vue",
-  "author": "wetoria",
+  "name": "taskmap",
+  "author": "leon",
   "url": "https://github.com/Wetoria/plugin-sample-vite-vue",
   "version": "0.0.1",
   "minAppVersion": "2.10.14",
@@ -11,14 +11,14 @@
     "all"
   ],
   "displayName": {
-    "default": "plugin-sample-vite-vue",
-    "en_US": "plugin-sample-vite-vue",
-    "zh_CN": "plugin-sample-vite-vue"
+    "default": "TaskMap",
+    "en_US": "TaskMap",
+    "zh_CN": "TaskMap"
   },
   "description": {
-    "default": "plugin-sample-vite-vue",
-    "en_US": "plugin-sample-vite-vue",
-    "zh_CN": "plugin-sample-vite-vue"
+    "default": "A minimal taskmap plugin with top bar icon",
+    "en_US": "A minimal taskmap plugin with top bar icon",
+    "zh_CN": "一个简单的任务地图插件，带有顶栏图标"
   },
   "readme": {
     "default": "README.md",
