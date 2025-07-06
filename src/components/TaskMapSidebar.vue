@@ -53,7 +53,7 @@
             </div>
           </div>
           
-          <TaskPage v-else-if="currentPage === 'task'" />
+          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" />
           <TimerPage v-else-if="currentPage === 'timer'" />
           <StatsPage v-else-if="currentPage === 'stats'" />
         </div>
@@ -75,7 +75,7 @@ import ProjectPage from './ProjectPage.vue'
 import TaskPage from './TaskPage.vue'
 import TimerPage from './TimerPage.vue'
 import StatsPage from './StatsPage.vue'
-import { projectDB } from '@/utils/dbManager'
+import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
 
 // 响应式数据
@@ -83,6 +83,7 @@ const inputText = ref('')
 const currentTheme = ref('dark')
 const currentPage = ref('project') // 当前显示的页面
 const projects = ref<any[]>([]) // 项目列表
+const tasks = ref<any[]>([]) // 任务列表
 
 // 计算属性
 const inputPlaceholder = computed(() => {
@@ -241,11 +242,32 @@ const handleEnter = async () => {
     } catch (error) {
       console.error('新建项目失败:', error)
     }
-  } else {
+  } else if (currentPage.value === 'task') {
     // 新建任务
-    console.log('新建任务:', inputText.value)
-    // 后续实现新建任务功能
-    inputText.value = '' // 清空输入框
+    const taskName = inputText.value.trim() || '未命名任务'
+    try {
+      const newTask = await taskDB.create({
+        name: taskName,
+        projectId: null, // 暂时不关联项目
+        parentId: null, // 顶级任务
+        status: 'pending', // 待完成
+        priority: 'medium', // 中等优先级
+        dueDate: null, // 暂不设置截止日期
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        isCompleted: false,
+        order: tasks.value.length
+      })
+      
+      // 添加到本地任务列表
+      tasks.value.push(newTask)
+      console.log('新建任务成功:', newTask)
+      
+      // 清空输入框
+      inputText.value = ''
+    } catch (error) {
+      console.error('新建任务失败:', error)
+    }
   }
 }
 
@@ -260,6 +282,17 @@ const loadProjects = async () => {
   }
 }
 
+// 加载任务列表
+const loadTasks = async () => {
+  try {
+    const taskList = await taskDB.getAll()
+    tasks.value = taskList
+    console.log('任务列表加载成功:', taskList)
+  } catch (error) {
+    console.error('加载任务列表失败:', error)
+  }
+}
+
 // 处理清空
 const handleClear = () => {
   console.log('输入框已清空')
@@ -269,6 +302,7 @@ const handleClear = () => {
 onMounted(async () => {
   await updateTheme()
   await loadProjects()
+  await loadTasks()
   
   // 监听思源主题变化 - 使用事件总线
   const siyuan = (window as any).siyuan
