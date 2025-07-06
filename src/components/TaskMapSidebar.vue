@@ -37,35 +37,20 @@
           <!-- 根据当前页面显示不同内容 -->
           <div v-if="currentPage === 'project'" class="project-list">
             <ProjectPage 
+              v-for="project in projects"
+              :key="project.id"
               :project="{
-                id: '1',
-                name: '学习Vue3开发',
-                daysLeft: 15,
-                completedTasks: 8,
-                totalTasks: 12
+                id: project.id,
+                name: project.name,
+                daysLeft: 0, // 默认剩余天数
+                completedTasks: project.completedTaskCount || 0,
+                totalTasks: project.taskCount || 0
               }"
               :theme="currentTheme as 'light' | 'dark'"
             />
-            <ProjectPage 
-              :project="{
-                id: '2',
-                name: '项目重构计划',
-                daysLeft: 8,
-                completedTasks: 3,
-                totalTasks: 10
-              }"
-              :theme="currentTheme as 'light' | 'dark'"
-            />
-            <ProjectPage 
-              :project="{
-                id: '3',
-                name: '文档整理工作',
-                daysLeft: 22,
-                completedTasks: 12,
-                totalTasks: 15
-              }"
-              :theme="currentTheme as 'light' | 'dark'"
-            />
+            <div v-if="projects.length === 0" class="empty-state">
+              <p>暂无项目，请输入项目名称创建新项目</p>
+            </div>
           </div>
           
           <TaskPage v-else-if="currentPage === 'task'" />
@@ -90,11 +75,14 @@ import ProjectPage from './ProjectPage.vue'
 import TaskPage from './TaskPage.vue'
 import TimerPage from './TimerPage.vue'
 import StatsPage from './StatsPage.vue'
+import { projectDB } from '@/utils/dbManager'
+import { ProjectStatus, ProjectType } from '@/types/project.d'
 
 // 响应式数据
 const inputText = ref('')
 const currentTheme = ref('dark')
 const currentPage = ref('project') // 当前显示的页面
+const projects = ref<any[]>([]) // 项目列表
 
 // 计算属性
 const inputPlaceholder = computed(() => {
@@ -225,16 +213,50 @@ const handleIconClick = (action: string) => {
 }
 
 // 处理回车输入
-const handleEnter = () => {
-  if (inputText.value.trim()) {
-    if (currentPage.value === 'project') {
-      console.log('新建项目:', inputText.value)
-      // 后续实现新建项目功能
-    } else {
-      console.log('新建任务:', inputText.value)
-      // 后续实现新建任务功能
+const handleEnter = async () => {
+  if (currentPage.value === 'project') {
+    // 新建项目
+    const projectName = inputText.value.trim() || '未命名'
+    try {
+      const newProject = await projectDB.create({
+        name: projectName,
+        type: ProjectType.WORK_CAREER, // 默认类型
+        status: ProjectStatus.ACTIVE,
+        color: '#3498db', // 默认颜色
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        isArchived: false,
+        order: projects.value.length,
+        taskCount: 0,
+        completedTaskCount: 0,
+        completionRate: 0
+      })
+      
+      // 添加到本地项目列表
+      projects.value.push(newProject)
+      console.log('新建项目成功:', newProject)
+      
+      // 清空输入框
+      inputText.value = ''
+    } catch (error) {
+      console.error('新建项目失败:', error)
     }
+  } else {
+    // 新建任务
+    console.log('新建任务:', inputText.value)
+    // 后续实现新建任务功能
     inputText.value = '' // 清空输入框
+  }
+}
+
+// 加载项目列表
+const loadProjects = async () => {
+  try {
+    const projectList = await projectDB.getAll()
+    projects.value = projectList
+    console.log('项目列表加载成功:', projectList)
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
   }
 }
 
@@ -243,9 +265,10 @@ const handleClear = () => {
   console.log('输入框已清空')
 }
 
-// 组件挂载时设置主题监听
+// 组件挂载时设置主题监听和加载数据
 onMounted(async () => {
   await updateTheme()
+  await loadProjects()
   
   // 监听思源主题变化 - 使用事件总线
   const siyuan = (window as any).siyuan
@@ -572,6 +595,13 @@ onUnmounted(() => {
   .project-list {
     width: 100%;
     padding: 8px 0;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+    font-size: 13px;
   }
 }
 

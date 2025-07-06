@@ -9,29 +9,29 @@
           </el-icon>
         </div>
         <div class="project-details">
-          <div class="project-name">示例项目</div>
+          <div class="project-name">{{ project.name }}</div>
         </div>
       </div>
-      <div class="project-days">剩余 15 天</div>
+      <div class="project-days">剩余 {{ project.daysLeft }} 天</div>
     </div>
 
     <!-- 任务完成状态 -->
     <div class="task-status">
-      <span class="completed-count">8</span>
+      <span class="completed-count">{{ project.completedTasks }}</span>
       <span class="separator">/</span>
-      <span class="total-count">12</span>
+      <span class="total-count">{{ project.totalTasks }}</span>
       <span class="status-text">任务已完成</span>
     </div>
 
     <!-- 进度条 -->
     <div class="progress-section">
-          <el-progress 
-      :percentage="66.7" 
-      :stroke-width="16"
-      :show-text="false"
-      class="project-progress"
-    />
-    <div class="progress-text">66.7%</div>
+      <el-progress 
+        :percentage="progressPercentage" 
+        :stroke-width="16"
+        :show-text="false"
+        class="project-progress"
+      />
+      <div class="progress-text">{{ progressPercentage }}%</div>
     </div>
   </div>
 </template>
