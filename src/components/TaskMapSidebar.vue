@@ -10,7 +10,7 @@
             :icon="icon.icon"
             circle
             size="large"
-            class="top-icon-btn"
+            :class="['top-icon-btn', { 'active': currentPage === icon.action }]"
             @click="handleIconClick(icon.action)"
           />
         </div>
@@ -21,7 +21,7 @@
         <div class="input-section">
           <el-input
             v-model="inputText"
-            placeholder="请输入任务内容..."
+            :placeholder="inputPlaceholder"
             class="main-input"
             clearable
             :suffix-icon="Calendar"
@@ -31,12 +31,12 @@
         </div>
       </el-main>
 
-      <!-- 下部分：项目列表 -->
+      <!-- 下部分：动态页面内容 -->
       <el-footer class="sidebar-footer">
         <div class="footer-content">
-          <!-- 项目列表 -->
-          <div class="project-list">
-            <ProjectCard 
+          <!-- 根据当前页面显示不同内容 -->
+          <div v-if="currentPage === 'project'" class="project-list">
+            <ProjectPage 
               :project="{
                 id: '1',
                 name: '学习Vue3开发',
@@ -46,7 +46,7 @@
               }"
               :theme="currentTheme as 'light' | 'dark'"
             />
-            <ProjectCard 
+            <ProjectPage 
               :project="{
                 id: '2',
                 name: '项目重构计划',
@@ -56,7 +56,7 @@
               }"
               :theme="currentTheme as 'light' | 'dark'"
             />
-            <ProjectCard 
+            <ProjectPage 
               :project="{
                 id: '3',
                 name: '文档整理工作',
@@ -67,6 +67,10 @@
               :theme="currentTheme as 'light' | 'dark'"
             />
           </div>
+          
+          <TaskPage v-else-if="currentPage === 'task'" />
+          <TimerPage v-else-if="currentPage === 'timer'" />
+          <StatsPage v-else-if="currentPage === 'stats'" />
         </div>
       </el-footer>
     </el-container>
@@ -74,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Document,
   Edit,
@@ -82,11 +86,20 @@ import {
   DataAnalysis,
   Calendar
 } from '@element-plus/icons-vue'
-import ProjectCard from './ProjectCard.vue'
+import ProjectPage from './ProjectPage.vue'
+import TaskPage from './TaskPage.vue'
+import TimerPage from './TimerPage.vue'
+import StatsPage from './StatsPage.vue'
 
 // 响应式数据
 const inputText = ref('')
 const currentTheme = ref('dark')
+const currentPage = ref('project') // 当前显示的页面
+
+// 计算属性
+const inputPlaceholder = computed(() => {
+  return currentPage.value === 'project' ? '添加一个新项目...' : '添加一个新任务...'
+})
 
 // 顶部图标配置
 const topIcons = [
@@ -208,14 +221,19 @@ const updateTheme = async () => {
 // 处理图标点击
 const handleIconClick = (action: string) => {
   console.log(`点击了 ${action} 图标`)
-  // 后续实现具体功能
+  currentPage.value = action
 }
 
 // 处理回车输入
 const handleEnter = () => {
   if (inputText.value.trim()) {
-    console.log('提交内容:', inputText.value)
-    // 后续实现提交功能
+    if (currentPage.value === 'project') {
+      console.log('新建项目:', inputText.value)
+      // 后续实现新建项目功能
+    } else {
+      console.log('新建任务:', inputText.value)
+      // 后续实现新建任务功能
+    }
     inputText.value = '' // 清空输入框
   }
 }
@@ -319,6 +337,12 @@ onUnmounted(() => {
           background: #4285f4;
           color: white;
         }
+        
+        &.active {
+          background: #4285f4;
+          color: white;
+          border-color: #4285f4;
+        }
       }
     }
     
@@ -389,6 +413,12 @@ onUnmounted(() => {
         &:hover {
           background: #4285f4;
           color: white;
+        }
+        
+        &.active {
+          background: #4285f4;
+          color: white;
+          border-color: #4285f4;
         }
       }
     }

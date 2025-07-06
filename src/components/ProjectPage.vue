@@ -1,5 +1,5 @@
 <template>
-  <div class="project-card" :class="{ 'is-dark': isDarkTheme }">
+  <div class="project-page" :class="{ 'is-dark': isDarkTheme }">
     <!-- 项目头部信息 -->
     <div class="project-header">
       <div class="project-info">
@@ -73,7 +73,7 @@ const progressPercentage = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.project-card {
+.project-page {
   background: transparent;
   border: 1px solid #e4e7ed;
   border-radius: 10px;
