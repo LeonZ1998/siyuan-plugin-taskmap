@@ -31,13 +31,41 @@
         </div>
       </el-main>
 
-      <!-- 下部分：第三部分 -->
+      <!-- 下部分：项目列表 -->
       <el-footer class="sidebar-footer">
         <div class="footer-content">
-          <!-- 第三部分内容 -->
-          <div style="text-align: center; width: 100%;">
-            <p>第三部分内容</p>
-            <p>这里可以放置其他功能</p>
+          <!-- 项目列表 -->
+          <div class="project-list">
+            <ProjectCard 
+              :project="{
+                id: '1',
+                name: '学习Vue3开发',
+                daysLeft: 15,
+                completedTasks: 8,
+                totalTasks: 12
+              }"
+              :theme="currentTheme as 'light' | 'dark'"
+            />
+            <ProjectCard 
+              :project="{
+                id: '2',
+                name: '项目重构计划',
+                daysLeft: 8,
+                completedTasks: 3,
+                totalTasks: 10
+              }"
+              :theme="currentTheme as 'light' | 'dark'"
+            />
+            <ProjectCard 
+              :project="{
+                id: '3',
+                name: '文档整理工作',
+                daysLeft: 22,
+                completedTasks: 12,
+                totalTasks: 15
+              }"
+              :theme="currentTheme as 'light' | 'dark'"
+            />
           </div>
         </div>
       </el-footer>
@@ -54,6 +82,7 @@ import {
   DataAnalysis,
   Calendar
 } from '@element-plus/icons-vue'
+import ProjectCard from './ProjectCard.vue'
 
 // 响应式数据
 const inputText = ref('')
@@ -503,10 +532,16 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     font-size: 13px;
-    opacity: 0.8;
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .project-list {
+    width: 100%;
+    padding: 8px 0;
   }
 }
 
