@@ -1,9 +1,5 @@
 <template>
   <div class="task-page">
-    <div class="page-header">
-      <h3>任务管理</h3>
-      <p>管理您的所有任务</p>
-    </div>
     <div class="page-content">
       <div class="task-list">
         <!-- 任务卡片示例 -->
@@ -116,23 +112,7 @@ import { ArrowRight } from '@element-plus/icons-vue'
   padding: 8px 0;
 }
 
-.page-header {
-  margin-bottom: 16px;
-  padding: 0 4px;
-  
-  h3 {
-    margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: inherit;
-  }
-  
-  p {
-    margin: 0;
-    font-size: 12px;
-    color: #7f8c8d;
-  }
-}
+
 
 .page-content {
   .task-list {
