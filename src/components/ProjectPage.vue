@@ -1,5 +1,5 @@
 <template>
-  <div class="project-page" :class="{ 'is-dark': isDarkTheme }">
+  <div class="project-page" :class="{ 'is-dark': isDarkTheme }" @click="$emit('click')" style="cursor: pointer;">
     <!-- 项目头部信息 -->
     <div class="project-header">
       <div class="project-info">

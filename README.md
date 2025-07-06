@@ -103,3 +103,61 @@ The github action is included in this sample, you can use it to publish your new
 ---
 
 More other plugin info, please check in [siyuan/plugin-sample](https://github.com/siyuan-note/plugin-sample).
+
+# TaskMap Plugin for Siyuan
+
+一个基于 Vue 3 和 Element Plus 的思源笔记任务管理插件。
+
+## 功能特性
+
+- 📋 **项目管理**: 创建、编辑和管理项目
+- ✅ **任务管理**: 任务创建、状态跟踪和优先级管理
+- ⏱️ **任务计时**: 时间跟踪和统计
+- 📊 **数据统计**: 项目进度和完成情况分析
+- 🎨 **主题同步**: 自动跟随思源笔记主题切换
+
+## 主题同步功能
+
+TaskMap 插件支持自动跟随思源笔记的主题设置：
+
+### 自动主题检测
+- 插件启动时自动检测思源笔记的当前主题
+- 支持思源的三种主题模式：明亮、暗黑、跟随系统
+- 实时监听思源主题变化并自动同步
+
+### 检测方式
+插件使用多种方式检测思源主题：
+1. **API 方式**: 通过思源 API 获取外观设置
+2. **配置方式**: 从 `window.siyuan.config` 读取主题配置
+3. **属性方式**: 检查 HTML 的 `data-theme` 属性
+4. **事件监听**: 监听思源主题变化事件
+
+### Element Plus 集成
+- 自动应用 Element Plus 的暗黑模式 CSS 变量
+- 所有 UI 组件自动适配主题变化
+- 平滑的主题切换动画
+
+## 开发
+
+```bash
+# 安装依赖
+npm install
+
+# 开发模式
+npm run dev
+
+# 构建
+npm run build
+```
+
+## 技术栈
+
+- Vue 3 (Composition API)
+- Element Plus
+- TypeScript
+- IndexedDB (数据存储)
+- VueUse (工具库)
+
+## 许可证
+
+MIT License

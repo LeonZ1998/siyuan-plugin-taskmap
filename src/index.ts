@@ -3,11 +3,16 @@ import {
   getFrontend,
 } from "siyuan";
 import "@/index.scss";
+// 导入 Element Plus 暗黑模式 CSS
+import 'element-plus/theme-chalk/dark/css-vars.css'
+// 导入自定义暗黑模式样式
+import '@/styles/dark.css'
 import PluginInfoString from '@/../plugin.json'
 import { ICONS_SVG, ICON_IDS } from './icons'
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import TaskMapSidebar from './components/TaskMapSidebar.vue'
+import { useTheme } from './composables/useTheme'
 
 let PluginInfo = {
   version: '',
@@ -69,6 +74,10 @@ export default class TaskMapPlugin extends Plugin {
   }
 
   onLayoutReady() {
+    // 初始化主题检测
+    const { initTheme } = useTheme()
+    initTheme()
+    
     // 添加侧边栏
     this.addDock({
       config: {

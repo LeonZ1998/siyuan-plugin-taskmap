@@ -14,6 +14,13 @@
             @click="handleIconClick(icon.action)"
           />
         </div>
+        <!-- 主题状态显示（调试用） -->
+        <div class="theme-status">
+          <el-tag :type="currentTheme === 'dark' ? 'info' : 'warning'" size="small">
+            {{ currentTheme === 'dark' ? '暗色' : '亮色' }}
+          </el-tag>
+        </div>
+        <!-- 主题切换按钮已移除，现在自动跟随思源主题 -->
       </el-header>
 
       <!-- 中间部分：带图标的输入框 -->
@@ -46,7 +53,8 @@
                 completedTasks: project.completedTaskCount || 0,
                 totalTasks: project.taskCount || 0
               }"
-              :theme="currentTheme as 'light' | 'dark'"
+              :theme="currentTheme"
+              @click="handleProjectCardClick(project)"
             />
             <div v-if="projects.length === 0" class="empty-state">
               <p>暂无项目，请输入项目名称创建新项目</p>
@@ -59,6 +67,12 @@
         </div>
       </el-footer>
     </el-container>
+    <ProjectDetailDialog
+      v-model="showProjectDialog"
+      :project="selectedProject"
+      @close="handleProjectDialogClose"
+      @create-task="handleCreateTask"
+    />
   </div>
 </template>
 
@@ -75,15 +89,22 @@ import ProjectPage from './ProjectPage.vue'
 import TaskPage from './TaskPage.vue'
 import TimerPage from './TimerPage.vue'
 import StatsPage from './StatsPage.vue'
+import ProjectDetailDialog from './ProjectDetailDialog.vue'
+// import ThemeToggle from './ThemeToggle.vue' // 已移除，现在自动跟随思源主题
 import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
+import { useTheme } from '@/composables/useTheme'
+
+// 使用主题管理 composable
+const { isDark, currentTheme, toggleTheme, setTheme, isSystemDark } = useTheme()
 
 // 响应式数据
 const inputText = ref('')
-const currentTheme = ref('dark')
 const currentPage = ref('project') // 当前显示的页面
 const projects = ref<any[]>([]) // 项目列表
 const tasks = ref<any[]>([]) // 任务列表
+const showProjectDialog = ref(false)
+const selectedProject = ref<any>(null)
 
 // 计算属性
 const inputPlaceholder = computed(() => {
@@ -113,99 +134,6 @@ const topIcons = [
     title: '数据统计'
   }
 ]
-
-// 主题监听器
-let themeObserver: MutationObserver | null = null
-let themeCheckInterval: number | null = null
-
-// 更新主题 - 直接从思源设置文件读取
-const updateTheme = async () => {
-  try {
-    // 方式1：通过API获取思源设置
-    const siyuan = (window as any).siyuan
-    if (siyuan && siyuan.ws) {
-      try {
-        // 获取思源的外观设置
-        const response = await fetch('/api/setting/getAppearance')
-        
-        if (response.ok) {
-          const responseText = await response.text()
-          
-          if (responseText) {
-            try {
-              const appearance = JSON.parse(responseText)
-              
-              // 获取主题设置
-              const theme = appearance.data?.theme || appearance.data?.mode || appearance.theme || appearance.mode
-              
-              if (theme !== undefined) {
-                // 思源的主题值：0=明亮, 1=暗黑, 2=跟随系统
-                if (theme === 1 || theme === 'dark') {
-                  currentTheme.value = 'dark'
-                } else if (theme === 0 || theme === 'light') {
-                  currentTheme.value = 'light'
-                } else if (theme === 2 || theme === 'system') {
-                  // 跟随系统时，检查系统主题
-                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-                  currentTheme.value = prefersDark ? 'dark' : 'light'
-                }
-                return
-              }
-            } catch (parseError) {
-              // API解析失败，继续尝试其他方式
-            }
-          }
-        }
-      } catch (apiError) {
-        // API获取失败，继续尝试其他方式
-      }
-    }
-    
-    // 方式2：从window.siyuan.config获取
-    if (siyuan && siyuan.config) {
-      // 尝试多种配置路径
-      const configPaths = [
-        'appearance.theme',
-        'appearance.mode',
-        'theme',
-        'mode',
-        'appearance.themeMode'
-      ]
-      
-      for (const path of configPaths) {
-        const value = path.split('.').reduce((obj, key) => obj?.[key], siyuan.config)
-        if (value !== undefined) {
-          if (value === 1 || value === 'dark') {
-            currentTheme.value = 'dark'
-            return
-          } else if (value === 0 || value === 'light') {
-            currentTheme.value = 'light'
-            return
-          } else if (value === 2 || value === 'system') {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-            currentTheme.value = prefersDark ? 'dark' : 'light'
-            return
-          }
-        }
-      }
-    }
-    
-    // 方式3：检查HTML的data-theme属性
-    console.log('使用备用方案 - 检查HTML属性')
-    const htmlElement = document.documentElement
-    const isDark = htmlElement.getAttribute('data-theme') === 'dark'
-    currentTheme.value = isDark ? 'dark' : 'light'
-    console.log('备用方案 - 当前主题:', currentTheme.value)
-    
-  } catch (error) {
-    console.error('获取思源主题设置失败:', error)
-    // 最终备用方案
-    const htmlElement = document.documentElement
-    const isDark = htmlElement.getAttribute('data-theme') === 'dark'
-    currentTheme.value = isDark ? 'dark' : 'light'
-    console.log('错误处理 - 当前主题:', currentTheme.value)
-  }
-}
 
 // 处理图标点击
 const handleIconClick = (action: string) => {
@@ -298,72 +226,28 @@ const handleClear = () => {
   console.log('输入框已清空')
 }
 
-// 组件挂载时设置主题监听和加载数据
+// 处理项目卡片点击
+const handleProjectCardClick = (project: any) => {
+  selectedProject.value = project
+  showProjectDialog.value = true
+}
+
+const handleProjectDialogClose = () => {
+  showProjectDialog.value = false
+  selectedProject.value = null
+}
+
+const handleCreateTask = () => {
+  // 处理创建任务逻辑
+  console.log('创建任务')
+  // 这里可以跳转到任务页面或打开任务创建对话框
+}
+
+// 组件挂载时加载数据
 onMounted(async () => {
-  await updateTheme()
   await loadProjects()
   await loadTasks()
-  
-  // 监听思源主题变化 - 使用事件总线
-  const siyuan = (window as any).siyuan
-  if (siyuan && siyuan.eventBus) {
-    console.log('思源事件总线可用')
-    
-    // 监听主题变化事件
-    siyuan.eventBus.on('ws-main', (data: any) => {
-      if (data && data.cmd === 'setAppearance') {
-        console.log('检测到思源主题变化事件:', data)
-        setTimeout(() => updateTheme(), 100) // 延迟一点确保设置已更新
-      }
-    })
-  } else {
-    console.log('思源事件总线不可用')
-  }
-  
-  // 备用方案：监听HTML属性变化
-  themeObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-        console.log('检测到HTML主题属性变化')
-        updateTheme()
-      }
-    })
-  })
-  
-  // 开始监听
-  themeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['data-theme']
-  })
-  
-  // 监听系统主题变化（当思源设置为跟随系统时）
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  mediaQuery.addEventListener('change', () => updateTheme())
-  
-  // 定时检查主题变化（备用方案）
-  themeCheckInterval = window.setInterval(() => {
-    updateTheme()
-  }, 3000) // 每3秒检查一次
-})
-
-// 组件卸载时清理监听器
-onUnmounted(() => {
-  if (themeObserver) {
-    themeObserver.disconnect()
-    themeObserver = null
-  }
-  
-  // 清理思源事件监听
-  const siyuan = (window as any).siyuan
-  if (siyuan && siyuan.eventBus) {
-    siyuan.eventBus.off('ws-main')
-  }
-  
-  // 清理定时器
-  if (themeCheckInterval) {
-    clearInterval(themeCheckInterval)
-    themeCheckInterval = null
-  }
+  console.log('TaskMap 组件已挂载，当前主题:', currentTheme.value)
 })
 </script>
 
@@ -546,30 +430,37 @@ onUnmounted(() => {
   min-height: 60px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   transition: all 0.3s ease;
+  position: relative;
 
   .icon-row {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    width: 100%;
+    flex: 1;
     gap: 6px;
+  }
+  
+  .theme-status {
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+  }
 
-    .top-icon-btn {
-      flex: 1;
-      max-width: 45px;
-      height: 45px;
-      transition: all 0.3s ease;
+  .top-icon-btn {
+    flex: 1;
+    max-width: 45px;
+    height: 45px;
+    transition: all 0.3s ease;
 
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      }
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
 
-      &:active {
-        transform: translateY(0);
-      }
+    &:active {
+      transform: translateY(0);
     }
   }
 }
