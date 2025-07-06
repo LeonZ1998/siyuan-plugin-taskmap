@@ -5,6 +5,9 @@ import {
 import "@/index.scss";
 import PluginInfoString from '@/../plugin.json'
 import { ICONS_SVG, ICON_IDS } from './icons'
+import { createApp } from 'vue'
+import ElementPlus from 'element-plus'
+import TaskMapSidebar from './components/TaskMapSidebar.vue'
 
 let PluginInfo = {
   version: '',
@@ -90,13 +93,29 @@ export default class TaskMapPlugin extends Plugin {
       init: (dock) => {
         // 侧边栏初始化时的处理
         console.log('TaskMap 侧边栏已初始化');
-        // TODO: 在这里初始化侧边栏内容
+        
+        // 创建Vue应用并挂载到侧边栏
+        const app = createApp(TaskMapSidebar)
+        app.use(ElementPlus)
+        app.mount(dock.element)
+        
+        // 保存app实例以便后续清理
+        ;(dock as any).app = app
       }
     });
   }
 
   onunload() {
     console.log('TaskMap Plugin unloaded')
+    
+    // 清理所有Vue应用实例
+    const docks = document.querySelectorAll('[data-type="taskmap_dock"]')
+    docks.forEach((dockElement) => {
+      const dock = (dockElement as any).__vue_app__
+      if (dock && dock.unmount) {
+        dock.unmount()
+      }
+    })
   }
 
   // 显示菜单

@@ -1,0 +1,40 @@
+// Element Plus 样式
+@import 'element-plus/dist/index.css';
+
+// 明色主题的 Element Plus 变量
+.taskmap-sidebar[data-theme="light"] {
+  --el-bg-color: #ffffff;
+  --el-bg-color-overlay: #f8f9fa;
+  --el-text-color-primary: #202124;
+  --el-text-color-regular: #5f6368;
+  --el-border-color: #dadce0;
+  --el-border-color-light: #dadce0;
+  --el-fill-color-blank: #ffffff;
+  --el-fill-color-light: #f8f9fa;
+  --el-color-primary: #4285f4;
+  --el-color-primary-light-3: #4285f4;
+  --el-color-primary-light-5: #4285f4;
+  --el-color-primary-light-7: #4285f4;
+  --el-color-primary-light-8: #4285f4;
+  --el-color-primary-light-9: #4285f4;
+  --el-color-primary-dark-2: #3367d6;
+}
+
+// 暗色主题的 Element Plus 变量
+.taskmap-sidebar[data-theme="dark"] {
+  --el-bg-color: #202124;
+  --el-bg-color-overlay: #303134;
+  --el-text-color-primary: #e8eaed;
+  --el-text-color-regular: #9aa0a6;
+  --el-border-color: #5f6368;
+  --el-border-color-light: #5f6368;
+  --el-fill-color-blank: #202124;
+  --el-fill-color-light: #303134;
+  --el-color-primary: #4285f4;
+  --el-color-primary-light-3: #4285f4;
+  --el-color-primary-light-5: #4285f4;
+  --el-color-primary-light-7: #4285f4;
+  --el-color-primary-light-8: #4285f4;
+  --el-color-primary-light-9: #4285f4;
+  --el-color-primary-dark-2: #3367d6;
+}
