@@ -13,37 +13,34 @@
     </div>
     <div v-else class="date-panel-range-panel">
       <div class="date-panel-range-row">
-        <div class="date-panel-range-block">
-          <div class="date-panel-range-label">开始日期</div>
-          <div class="date-panel-range-date">{{ rangeStartText }}</div>
-          <div class="date-panel-range-desc">{{ rangeStartDesc }}</div>
-        </div>
-        <div class="date-panel-range-block">
-          <div class="date-panel-range-label">结束日期</div>
-          <div class="date-panel-range-date">{{ rangeEndText }}</div>
-          <div class="date-panel-range-desc">{{ rangeEndDesc }}</div>
-        </div>
+        <el-date-picker
+          v-model="localRangeStart"
+          type="date"
+          placeholder="开始日期"
+          style="width: 180px; margin-right: 12px;"
+          :disabled-date="date => localRangeEnd && date.getTime() > new Date(localRangeEnd).getTime()"
+          @change="onRangeStartChange"
+        />
+        <el-date-picker
+          v-model="localRangeEnd"
+          type="date"
+          placeholder="结束日期"
+          style="width: 180px;"
+          :disabled-date="date => localRangeStart && date.getTime() < new Date(localRangeStart).getTime()"
+          @change="onRangeEndChange"
+        />
       </div>
       <el-switch v-model="localUseTargetTime" class="date-panel-switch" active-text="使用项目时间" @change="onUseTargetTimeChange" />
       <el-divider />
-      <el-row align="middle" class="date-panel-repeat-row">
-        <el-col :span="12" class="date-panel-repeat-label">
-          <el-icon><Refresh /></el-icon>
-          设置循环
-        </el-col>
-        <el-col :span="12" class="date-panel-repeat-value">
-          无循环
-          <el-icon style="margin-left:4px"><ArrowRight /></el-icon>
-        </el-col>
-      </el-row>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 import { Calendar, ArrowRight, Refresh } from '@element-plus/icons-vue'
 import zhLocale from 'element-plus/dist/locale/zh-cn.mjs'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) }, // { mode, singleDate, range, useTargetTime }
@@ -52,22 +49,29 @@ const props = defineProps({
   rangeStartDesc: { type: String, default: '' },
   rangeEndText: { type: String, default: '' },
   rangeEndDesc: { type: String, default: '' },
+  projectStartDate: { type: [Date, String, Number], default: null },
+  projectEndDate: { type: [Date, String, Number], default: null },
 })
 const emit = defineEmits(['update:modelValue', 'clear'])
 
 const modeOptions = [
   { label: '单日', value: 'single' },
-  { label: '区间/循环', value: 'range' }
+  { label: '区间', value: 'range' }
 ]
 
 const localMode = ref(props.modelValue.mode || 'single')
 const localSingleDate = ref(props.modelValue.singleDate || new Date())
 const localUseTargetTime = ref(props.modelValue.useTargetTime || false)
+const localRangeStart = ref(props.modelValue.rangeStart ? new Date(props.modelValue.rangeStart) : new Date())
+const localRangeEnd = ref(props.modelValue.rangeEnd ? new Date(props.modelValue.rangeEnd) : new Date())
+const showRangeCalendar = ref('') // 'start' | 'end' | ''
 
 watch(() => props.modelValue, (val) => {
   if (val.mode !== undefined) localMode.value = val.mode
   if (val.singleDate !== undefined) localSingleDate.value = val.singleDate
   if (val.useTargetTime !== undefined) localUseTargetTime.value = val.useTargetTime
+  if (val.rangeStart !== undefined) localRangeStart.value = val.rangeStart
+  if (val.rangeEnd !== undefined) localRangeEnd.value = val.rangeEnd
 })
 
 watch(localMode, (val) => {
@@ -78,14 +82,71 @@ watch(localSingleDate, (val) => {
 })
 watch(localUseTargetTime, (val) => {
   emit('update:modelValue', { ...props.modelValue, useTargetTime: val })
+  if (val && props.projectStartDate && props.projectEndDate) {
+    localRangeStart.value = new Date(props.projectStartDate)
+    localRangeEnd.value = new Date(props.projectEndDate)
+  }
+})
+watch(localRangeStart, (val) => {
+  emit('update:modelValue', { ...props.modelValue, rangeStart: val })
+})
+watch(localRangeEnd, (val) => {
+  emit('update:modelValue', { ...props.modelValue, rangeEnd: val })
 })
 
 function onSingleDateChange(val: Date) {
   localSingleDate.value = val
 }
-function onUseTargetTimeChange(val: boolean) {
+function onUseTargetTimeChange(val) {
   localUseTargetTime.value = val
+  emit('update:modelValue', { ...props.modelValue, useTargetTime: val })
+  if (val && props.projectStartDate && props.projectEndDate) {
+    localRangeStart.value = new Date(props.projectStartDate)
+    localRangeEnd.value = new Date(props.projectEndDate)
+  }
 }
+function onRangeStartChange(val) {
+  if (localUseTargetTime.value) localUseTargetTime.value = false
+  localRangeStart.value = val
+}
+function onRangeEndChange(val) {
+  if (val <= localRangeStart.value) {
+    ElMessage.error('结束日期必须晚于开始日期，请重新选择')
+    localRangeEnd.value = ''
+    return
+  }
+  if (localUseTargetTime.value) localUseTargetTime.value = false
+  localRangeEnd.value = val
+}
+
+const rangeStartText = computed(() => {
+  const d = localRangeStart.value
+  if (!d) return ''
+  const date = new Date(d)
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} 周一`
+})
+const rangeEndText = computed(() => {
+  const d = localRangeEnd.value
+  if (!d) return ''
+  const date = new Date(d)
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} 周二`
+})
+
+const displayDate = computed(() => {
+  if (localMode.value === 'single') {
+    const d = localSingleDate.value
+    if (!d) return ''
+    const date = new Date(d)
+    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`
+  } else {
+    const start = localRangeStart.value
+    const end = localRangeEnd.value
+    if (!start || !end) return ''
+    const s = new Date(start)
+    const e = new Date(end)
+    return `${s.getFullYear()}/${s.getMonth() + 1}/${s.getDate()} - ${e.getFullYear()}/${e.getMonth() + 1}/${e.getDate()}`
+  }
+})
 </script>
 
 <style scoped>
@@ -170,24 +231,5 @@ function onUseTargetTimeChange(val: boolean) {
 }
 .date-panel-switch {
   margin: 8px 0 0 0;
-}
-.date-panel-repeat-row {
-  margin-top: 8px;
-}
-.date-panel-repeat-label {
-  display: flex;
-  align-items: center;
-  font-size: 15px;
-  color: #8fa3c8;
-}
-.date-panel-repeat-label .el-icon {
-  margin-right: 6px;
-}
-.date-panel-repeat-value {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 15px;
-  color: #bfc8dc;
 }
 </style> 

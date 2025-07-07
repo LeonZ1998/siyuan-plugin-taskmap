@@ -93,7 +93,10 @@
       <!-- 4. 任务列表区域（可滚动） -->
       <div class="task-list-container">
         <div class="task-list-section">
-          <div class="section-title">待办任务 {{ tasks.length }}</div>
+          <div class="section-title-row">
+            <div class="section-title">任务列表 {{ tasks.length }}</div>
+            <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
+          </div>
           <div v-for="task in tasks" :key="task.id" class="task-card">
             <div class="task-left">
               <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
@@ -111,23 +114,18 @@
             </div>
           </div>
           <div v-if="tasks.length === 0" class="empty-state">
-            <p>暂无任务，点击下方按钮创建新任务</p>
+            <p>暂无任务，点击右上角按钮创建新任务</p>
           </div>
         </div>
       </div>
-
-      <!-- 5. 底部按钮（固定在底部） -->
-      <div class="dialog-footer">
-        <el-button type="primary" round @click="handleCreateTask">创建任务</el-button>
-      </div>
     </div>
     <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" :range="[props.project?.startDate, props.project?.endDate]" />
-    <TaskDetailPanel v-model="showTaskPanel" />
+    <TaskDetailPanel v-model="showTaskPanel" :key="showTaskPanelKey" :project-id="props.project.id" @task-saved="loadProjectTasks" />
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar } from '@element-plus/icons-vue'
 import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput } from 'element-plus'
 import { ProjectType } from '@/types/project.d'
@@ -336,10 +334,19 @@ watch(currentIcon, (val) => {
 })
 
 const showTaskPanel = ref(false)
-
+const showTaskPanelKey = ref(0)
 function handleCreateTask() {
+  showTaskPanelKey.value++
   showTaskPanel.value = true
 }
+
+// 每次弹窗打开时都加载任务列表
+watch(() => showTaskPanel.value, (val) => {
+  if (!val) loadProjectTasks()
+})
+onMounted(() => {
+  loadProjectTasks()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -470,10 +477,15 @@ function handleCreateTask() {
 
 .task-list-section {
   padding: 0 0 20px 0;
+  .section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
   .section-title { 
     font-size: 16px; 
     font-weight: 600;
-    margin-bottom: 12px; 
     color: var(--el-color-primary);
   }
   .task-card {
@@ -577,21 +589,6 @@ function handleCreateTask() {
     padding: 32px 20px;
     font-size: 14px;
     color: var(--el-text-color-secondary);
-  }
-}
-
-.dialog-footer {
-  display: flex; 
-  justify-content: center; 
-  margin: 0 20px 20px 20px;
-  flex-shrink: 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--el-border-color-light);
-  
-  .el-button {
-    padding: 12px 32px;
-    font-size: 14px;
-    font-weight: 500;
   }
 }
 
@@ -736,5 +733,15 @@ function handleCreateTask() {
   color: #b0b0b8;
   margin-top: 0;
   font-weight: 400;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.create-task-btn {
+  margin-left: auto;
 }
 </style> 

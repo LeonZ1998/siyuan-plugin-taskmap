@@ -9,38 +9,25 @@
           <el-input v-model="form.note" placeholder="备注" class="input-note" type="textarea" :rows="2" />
         </el-form-item>
         <el-divider />
-        <el-form-item label="任务日期和循环" label-class="section-label">
+        <el-form-item label="任务日期" label-class="section-label">
           <template v-if="!showDatePanel">
-            <div class="date-card" @click="showDatePanel = true">
+            <div class="date-card" @click="openDatePanel">
               <div class="date-card-left">
                 <span class="date-card-icon-bg">
                   <el-icon class="date-card-icon"><Calendar /></el-icon>
                 </span>
-                <span class="date-card-text">日期和循环</span>
+                <span class="date-card-text">任务日期</span>
               </div>
               <span class="date-card-arrow">
                 <el-icon><ArrowRight /></el-icon>
               </span>
             </div>
           </template>
-          <TaskDatePanel v-else />
+          <TaskDatePanel v-else @closePanel="closeDatePanel" ref="datePanelRef" />
         </el-form-item>
         <el-divider />
-        <el-form-item label="任务量化" label-class="section-label">
-          <el-card class="quantify-card" shadow="never">
-            <el-row align="middle" justify="space-between">
-              <el-col :span="16" class="quantify-label">
-                <el-icon><DataAnalysis /></el-icon>
-                量化进度
-              </el-col>
-              <el-col :span="8" class="quantify-switch">
-                <el-switch v-model="form.quantify" />
-              </el-col>
-            </el-row>
-          </el-card>
-        </el-form-item>
         <el-form-item>
-          <el-button type="primary" style="width:100%" @click="onClose">保存任务</el-button>
+          <el-button type="primary" style="width:100%" @click="onSaveTask">保存任务</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -49,14 +36,57 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Calendar, ArrowRight, DataAnalysis } from '@element-plus/icons-vue'
+import { Calendar, ArrowRight } from '@element-plus/icons-vue'
 import TaskDatePanel from './TaskDatePanel.vue'
-const props = defineProps<{ modelValue: boolean }>()
-const emit = defineEmits(['update:modelValue'])
+import { taskDB } from '@/utils/dbManager'
+import { TaskStatus } from '@/types/task.d'
+const props = defineProps<{ modelValue: boolean, projectId?: string }>()
+const emit = defineEmits(['update:modelValue', 'task-saved'])
 const form = ref({ name: '', note: '', quantify: false })
 const showDatePanel = ref(false)
+const datePanelRef = ref()
 function onClose() {
   emit('update:modelValue', false)
+}
+function openDatePanel() {
+  if (!showDatePanel.value) showDatePanel.value = true
+}
+function closeDatePanel() {
+  showDatePanel.value = false
+}
+async function onSaveTask() {
+  // 获取任务名称
+  const name = form.value.name?.trim() || '未命名'
+  // 获取备注
+  const notes = form.value.note
+  // 获取日期数据
+  const datePanel = datePanelRef.value
+  let startDate, dueDate
+  if (datePanel && datePanel.panelValue) {
+    if (datePanel.panelValue.mode === 'single') {
+      startDate = dueDate = datePanel.panelValue.singleDate ? new Date(datePanel.panelValue.singleDate).getTime() : Date.now()
+    } else {
+      startDate = datePanel.panelValue.rangeStart ? new Date(datePanel.panelValue.rangeStart).getTime() : Date.now()
+      dueDate = datePanel.panelValue.rangeEnd ? new Date(datePanel.panelValue.rangeEnd).getTime() : Date.now()
+    }
+  } else {
+    startDate = dueDate = Date.now()
+  }
+  // 新建任务
+  await taskDB.create({
+    name,
+    notes,
+    projectId: props.projectId,
+    startDate,
+    dueDate,
+    status: TaskStatus.PENDING,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    isArchived: false,
+    order: 0
+  })
+  emit('update:modelValue', false)
+  emit('task-saved')
 }
 </script>
 
@@ -134,26 +164,5 @@ function onClose() {
   border-radius: 50%;
   width: 28px;
   height: 28px;
-}
-.quantify-card {
-  background: #23232a;
-  border-radius: 14px;
-  padding: 8px 12px;
-  color: #fff;
-  box-shadow: none;
-}
-.quantify-label {
-  display: flex;
-  align-items: center;
-  font-size: 15px;
-  color: #fff;
-}
-.quantify-label .el-icon {
-  margin-right: 8px;
-}
-.quantify-switch {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 }
 </style> 
