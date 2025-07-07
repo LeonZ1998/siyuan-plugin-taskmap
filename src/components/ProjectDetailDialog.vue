@@ -65,12 +65,14 @@
           <div class="stat-deadline">{{ formatDeadlineDate() }} 截止</div>
           <el-progress :percentage="Number(deadlineProgress)" :show-text="false" class="stat-progress" />
         </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-main">
-            <el-progress type="circle" :percentage="progressPercent"  :show-text="false" />
-            <span>{{ progressPercent }}%</span>
+        <el-card class="stat-card progress-card" shadow="hover">
+          <div class="progress-card-content">
+            <el-progress type="circle" :percentage="progressPercent" :show-text="false" :stroke-width="5" :width="45"  status="success" class="progress-circle" />
+            <div class="progress-info">
+              <div class="progress-percent">{{ progressPercent }}<span class="progress-percent-sign">%</span></div>
+              <div class="progress-label">目标进度</div>
+            </div>
           </div>
-          <div class="stat-sub">目标进度</div>
         </el-card>
         <el-card class="stat-card" shadow="hover">
           <div class="stat-main">
@@ -296,7 +298,15 @@ const formatDeadlineDate = () => {
   const d = new Date(props.project.endDate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 }
-const progressPercent = Number(props.project?.completionRate) || 0;
+
+// 计算目标进度百分比
+const progressPercent = ref(0)
+watch(() => [props.project?.taskCount, props.project?.completedTaskCount], () => {
+  const total = Number(props.project?.taskCount) || 0
+  const completed = Number(props.project?.completedTaskCount) || 0
+  progressPercent.value = total === 0 ? 0 : Math.round((completed / total) * 100)
+}, { immediate: true })
+
 const deadlineProgress = computed(() => {
   if (!props.project?.endDate) return 0
   const now = new Date()
@@ -396,20 +406,23 @@ watch(currentIcon, (val) => {
   gap: 16px;
   margin: 24px 20px 24px 20px;
 }
-.stat-card {
-  border-radius: 16px !important;
+:deep(.stat-card),
+:deep(.progress-card) {
+  border-radius: 14px !important;
   min-width: 0 !important;
   min-height: 48px !important;
+  height: 64px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
-  background: #18181c !important;
+  background: #23232a !important;
   color: #fff !important;
   box-shadow: 0 2px 8px 0 #00000022 !important;
   cursor: pointer !important;
-  padding: 8px 8px 6px 8px !important;
+  padding: 10px 12px 8px 12px !important;
 }
-.stat-card .el-card__body {
+:deep(.stat-card .el-card__body),
+:deep(.progress-card .el-card__body) {
   padding: 0 !important;
   min-height: 0 !important;
   display: flex !important;
@@ -417,28 +430,28 @@ watch(currentIcon, (val) => {
   justify-content: center !important;
 }
 .stat-main {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .stat-sub, .stat-deadline {
-  font-size: 13px;
+  font-size: 12px;
   color: #b0b0b8;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   font-weight: 400;
 }
 .stat-icon {
-  font-size: 18px;
-  margin-right: 6px;
+  font-size: 16px;
+  margin-right: 4px;
   color: #6c6cff;
 }
 .stat-progress {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .task-list-container {
@@ -668,5 +681,53 @@ watch(currentIcon, (val) => {
 }
 .icon-avatar:hover {
   border: 2px solid #409EFF;
+}
+
+.progress-card {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 48px !important;
+  padding: 8px 10px 8px 10px !important;
+  background: #23232a !important;
+  border-radius: 14px !important;
+}
+.progress-card-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  height: 100%;
+  width: 100%;
+}
+.progress-circle {
+  flex-shrink: 0;
+  margin: 0;
+}
+.progress-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+}
+.progress-percent {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.progress-percent-sign {
+  font-size: 13px;
+  font-weight: 400;
+  margin-left: 1px;
+}
+.progress-label {
+  font-size: 13px;
+  color: #b0b0b8;
+  margin-top: 0;
+  font-weight: 400;
 }
 </style> 
