@@ -2,15 +2,6 @@
   <div class="task-card" :class="{ 'is-subtask': !!task.parentId }" @contextmenu.prevent="showMenu($event)">
     <div class="task-left">
       <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
-      <el-button
-        v-if="task.hasChildren"
-        class="expand-btn"
-        type="text"
-        size="small"
-        :class="{ expanded: task.expanded }"
-      >
-        <el-icon><ArrowRight /></el-icon>
-      </el-button>
     </div>
     <div class="task-main">
       <span
@@ -41,7 +32,7 @@
       :style="menuStyle"
       @click.self="menuVisible = false"
     >
-      <div class="context-menu-item">添加子任务</div>
+      <div class="context-menu-item" @click.stop="onAddSubTask">添加子任务</div>
       <div class="context-menu-item move-menu-trigger" @mouseenter="showMoveMenu" @mouseleave="hideMoveMenu">
         移动到
         <span class="arrow">▶</span>
@@ -59,14 +50,35 @@
       </div>
       <div class="context-menu-item">开始计时</div>
     </div>
+    <TaskDetailPanel
+      v-if="showAddSubTaskPanel"
+      :model-value="showAddSubTaskPanel"
+      :project-id="task.projectId"
+      @update:modelValue="showAddSubTaskPanel = false"
+      @task-saved="onSubTaskSaved"
+      :parent-id="task.id"
+    />
+    <div v-if="task.expanded && task.subTasks && task.subTasks.length > 0">
+      <TaskCard
+        v-for="subTask in task.subTasks"
+        :key="subTask.id"
+        :task="subTask"
+        :show-project-name="showProjectName"
+        :all-projects="allProjects"
+        @update:taskName="$emit('update:taskName', $event)"
+        @move-task="$emit('move-task', $event)"
+        @sub-task-saved="$emit('sub-task-saved')"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
+import TaskDetailPanel from './TaskDetailPanel.vue'
 const props = defineProps<{ task: any, showProjectName?: boolean, allProjects?: any[] }>()
-const emit = defineEmits(['update:taskName', 'move-task'])
+const emit = defineEmits(['update:taskName', 'move-task', 'sub-task-saved'])
 const formatShortDate = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}月${date.getDate()}日`
@@ -156,6 +168,19 @@ const filteredProjects = computed(() =>
     p => String(p.id) !== String(props.task.projectId)
   )
 )
+
+const showAddSubTaskPanel = ref(false)
+function onAddSubTask() {
+  showAddSubTaskPanel.value = true
+  menuVisible.value = false
+}
+function onSubTaskSaved() {
+  showAddSubTaskPanel.value = false
+  emit('sub-task-saved') // 通知父组件刷新
+}
+function toggleExpand() {
+  props.task.expanded = !props.task.expanded
+}
 </script>
 
 <style scoped>
@@ -185,15 +210,10 @@ const filteredProjects = computed(() =>
   flex-shrink: 0;
 }
 .expand-btn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  color: #7f8c8d;
-  margin-left: 2px;
-  transition: transform 0.2s;
+  display: none !important;
 }
-.expand-btn.expanded {
-  transform: rotate(90deg);
+.task-card.is-subtask .expand-btn {
+  margin-left: 0;
 }
 .task-main {
   display: flex;

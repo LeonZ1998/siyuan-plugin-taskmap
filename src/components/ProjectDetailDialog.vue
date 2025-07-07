@@ -112,15 +112,25 @@
             <div class="section-title">任务列表 {{ tasks.length }}</div>
             <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
           </div>
-          <div v-for="task in tasks" :key="task.id">
-            <TaskCard
-              :task="task"
-              :show-project-name="false"
-              :all-projects="allProjects"
-              @update:taskName="(newName) => onUpdateTaskName(task, newName)"
-              @move-task="onMoveTask"
-            />
-          </div>
+          <el-tree
+            :data="taskTree"
+            :props="treeProps"
+            node-key="id"
+            draggable
+            default-expand-all
+            @node-drop="onNodeDrop"
+          >
+            <template #default="{ node, data }">
+              <TaskCard
+                :task="data"
+                :show-project-name="false"
+                :all-projects="allProjects"
+                @update:taskName="(newName) => onUpdateTaskName(data, newName)"
+                @move-task="onMoveTask"
+                @sub-task-saved="loadProjectTasks"
+              />
+            </template>
+          </el-tree>
           <div v-if="tasks.length === 0" class="empty-state">
             <p>暂无任务，点击右上角按钮创建新任务</p>
           </div>
@@ -135,7 +145,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
 import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar, Delete } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
+import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox, ElTree } from 'element-plus'
 import { ProjectType } from '@/types/project.d'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
@@ -144,6 +154,7 @@ import { getIconSVG } from '@/icons/icons'
 import { ICON_IDS } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import TaskCard from './TaskCard.vue'
+import 'element-plus/es/components/tree/style/css'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -448,6 +459,40 @@ async function onMoveTask({ task, project }) {
   await loadProjectTasks()
   // 通知父组件任务已变更
   emit('project-task-changed')
+}
+
+const treeProps = {
+  label: 'name',
+  children: 'subTasks',
+  disabled: 'disabled'
+}
+function buildTaskTree(flatTasks) {
+  const idMap = new Map()
+  flatTasks.forEach(t => idMap.set(t.id, { ...t, subTasks: [] }))
+  idMap.forEach(task => {
+    if (!task.subTasks) task.subTasks = []
+  })
+  const tree = []
+  idMap.forEach(task => {
+    // 兼容 parentId 为空、null、undefined 的老数据
+    if (task.parentId) {
+      const parent = idMap.get(task.parentId)
+      if (parent) parent.subTasks.push(task)
+      else tree.push(task)
+    } else {
+      tree.push(task)
+    }
+  })
+  return tree
+}
+const taskTree = computed(() => buildTaskTree(tasks.value))
+
+function onNodeDrop(draggingNode, dropNode, dropType, ev) {
+  // 这里实现 parentId、顺序等的数据库更新逻辑
+  // draggingNode.data, dropNode.data, dropType
+  // dropType: 'before' | 'after' | 'inner'
+  // 你可以根据 dropType 更新 parentId 和排序
+  // 更新后调用 loadProjectTasks() 刷新
 }
 </script>
 
