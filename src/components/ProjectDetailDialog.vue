@@ -94,7 +94,11 @@
             <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
           </div>
           <div v-for="task in tasks" :key="task.id">
-            <TaskCard :task="task" :show-project-name="false" />
+            <TaskCard
+              :task="task"
+              :show-project-name="false"
+              @update:taskName="(newName) => onUpdateTaskName(task, newName)"
+            />
           </div>
           <div v-if="tasks.length === 0" class="empty-state">
             <p>暂无任务，点击右上角按钮创建新任务</p>
@@ -335,6 +339,12 @@ watch(() => showTaskPanel.value, (val) => {
 const formatShortDate = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+async function onUpdateTaskName(task, newName) {
+  task.name = newName
+  // 直接更新数据库
+  await taskDB.update(task.id, { name: newName })
 }
 
 onMounted(() => {

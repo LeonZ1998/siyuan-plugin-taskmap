@@ -2,7 +2,7 @@
   <div class="task-page">
     <div class="page-content">
       <div class="task-list">
-        <TaskCard v-for="task in tasks" :key="task.id" :task="task" :show-project-name="true" />
+        <TaskCard v-for="task in tasks" :key="task.id" :task="task" :show-project-name="true" @update:taskName="(newName) => onUpdateTaskName(task, newName)" />
         <div v-if="tasks.length === 0" class="empty-state">
           <p>暂无任务，请输入任务名称创建新任务</p>
         </div>
@@ -51,6 +51,12 @@ const formatDate = (timestamp: number) => {
 const formatShortDate = (timestamp: number) => {
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+async function onUpdateTaskName(task, newName) {
+  task.name = newName
+  // 直接更新数据库
+  await taskDB.update(task.id, { name: newName })
 }
 </script>
 
