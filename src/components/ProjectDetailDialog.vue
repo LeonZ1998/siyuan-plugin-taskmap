@@ -118,10 +118,11 @@
 
       <!-- 5. 底部按钮（固定在底部） -->
       <div class="dialog-footer">
-        <el-button type="primary" round @click="$emit('create-task')">创建任务</el-button>
+        <el-button type="primary" round @click="handleCreateTask">创建任务</el-button>
       </div>
     </div>
     <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" :range="[props.project?.startDate, props.project?.endDate]" />
+    <TaskDetailPanel v-model="showTaskPanel" />
   </el-dialog>
 </template>
 
@@ -134,8 +135,8 @@ import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
 import IconPicker from './IconPicker.vue'
 import { getIconSVG } from '@/icons/icons'
-import { nextTick } from 'vue'
 import { ICON_IDS } from '@/icons/icons'
+import TaskDetailPanel from './TaskDetailPanel.vue'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -333,6 +334,12 @@ watch(currentIcon, (val) => {
     projectDB.update(props.project.id, { icon: val })
   }
 })
+
+const showTaskPanel = ref(false)
+
+function handleCreateTask() {
+  showTaskPanel.value = true
+}
 </script>
 
 <style lang="scss" scoped>
