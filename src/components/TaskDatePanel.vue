@@ -1,6 +1,6 @@
 <template>
   <DatePanelContent
-    v-model="panelValue"
+    v-model:modelValue="panelValue"
     :display-date="displayDate"
     :range-start-text="rangeStartText"
     :range-start-desc="rangeStartDesc"
@@ -18,7 +18,13 @@ import DatePanelContent from './DatePanelContent.vue'
 
 const emit = defineEmits(['closePanel'])
 
-const panelValue = ref({ mode: 'single', singleDate: new Date(), useTargetTime: false })
+const panelValue = ref({
+  mode: 'single',
+  singleDate: new Date(),
+  useTargetTime: false,
+  rangeStart: new Date(),
+  rangeEnd: new Date()
+})
 
 const displayDate = computed(() => {
   // 格式化 panelValue.value.singleDate
@@ -42,4 +48,6 @@ function onClear() {
   // 通知父组件收起面板
   emit('closePanel')
 }
+
+defineExpose({ panelValue })
 </script> 

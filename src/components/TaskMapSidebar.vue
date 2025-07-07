@@ -14,13 +14,6 @@
             @click="handleIconClick(icon.action)"
           />
         </div>
-        <!-- 主题状态显示（调试用） -->
-        <div class="theme-status">
-          <el-tag :type="currentTheme === 'dark' ? 'info' : 'warning'" size="small">
-            {{ currentTheme === 'dark' ? '暗色' : '亮色' }}
-          </el-tag>
-        </div>
-        <!-- 主题切换按钮已移除，现在自动跟随思源主题 -->
       </el-header>
 
       <!-- 中间部分：带图标的输入框 -->
@@ -440,12 +433,6 @@ onMounted(async () => {
     align-items: center;
     flex: 1;
     gap: 6px;
-  }
-  
-  .theme-status {
-    margin-left: 8px;
-    display: flex;
-    align-items: center;
   }
 
   .top-icon-btn {

@@ -2,36 +2,7 @@
   <div class="task-page">
     <div class="page-content">
       <div class="task-list">
-        <div 
-          v-for="task in tasks" 
-          :key="task.id" 
-          class="task-card"
-          :class="{ 'is-subtask': !!task.parentId }"
-        >
-          <div class="task-left">
-            <el-checkbox 
-              class="task-checkbox" 
-              :model-value="task.isCompleted"
-            />
-            <el-button
-              v-if="task.hasChildren"
-              class="expand-btn"
-              type="text"
-              size="small"
-              :class="{ expanded: task.expanded }"
-            >
-              <el-icon><ArrowRight /></el-icon>
-            </el-button>
-          </div>
-          <div class="task-main">
-            <span class="task-name">{{ task.name }}</span>
-            <div class="task-meta">
-              <span v-if="task.projectName" class="project-name">{{ task.projectName }}</span>
-              <span v-if="task.dueDate" class="task-date">{{ formatDate(task.dueDate) }}</span>
-            </div>
-            <div class="task-divider"></div>
-          </div>
-        </div>
+        <TaskCard v-for="task in tasks" :key="task.id" :task="task" :show-project-name="true" />
         <div v-if="tasks.length === 0" class="empty-state">
           <p>暂无任务，请输入任务名称创建新任务</p>
         </div>
@@ -42,14 +13,23 @@
 
 <script setup lang="ts">
 import { ArrowRight } from '@element-plus/icons-vue'
+import { onMounted, ref } from 'vue'
+import { taskDB, projectDB } from '@/utils/dbManager'
+import TaskCard from './TaskCard.vue'
 
-// 定义组件属性
-interface Props {
-  tasks?: any[]
-}
+const tasks = ref<any[]>([])
 
-const props = withDefaults(defineProps<Props>(), {
-  tasks: () => []
+onMounted(async () => {
+  // 加载所有任务
+  const allTasks = await taskDB.getAll()
+  // 加载所有项目
+  const projects = await projectDB.getAll()
+  const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
+  // 为每个任务补充 projectName
+  tasks.value = allTasks.map(task => ({
+    ...task,
+    projectName: task.projectId ? projectMap[task.projectId] : ''
+  }))
 })
 
 // 格式化日期
@@ -66,6 +46,11 @@ const formatDate = (timestamp: number) => {
   if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)}天前`
   
   return date.toLocaleDateString()
+}
+
+const formatShortDate = (timestamp: number) => {
+  const date = new Date(timestamp)
+  return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 </script>
 

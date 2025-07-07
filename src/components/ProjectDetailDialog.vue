@@ -15,10 +15,6 @@
         <el-button link class="back-btn" @click="$emit('close')">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
-        <div class="header-spacer"></div>
-        <el-button link class="more-btn">
-          <el-icon><MoreFilled /></el-icon>
-        </el-button>
       </div>
 
       <!-- 2. 项目信息行 -->
@@ -97,21 +93,8 @@
             <div class="section-title">任务列表 {{ tasks.length }}</div>
             <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
           </div>
-          <div v-for="task in tasks" :key="task.id" class="task-card">
-            <div class="task-left">
-              <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
-              <el-button v-if="task.hasChildren" class="expand-btn" type="text" size="small" :class="{ expanded: task.expanded }">
-                <el-icon><ArrowRight /></el-icon>
-              </el-button>
-            </div>
-            <div class="task-main">
-              <span class="task-name">{{ task.name }}</span>
-              <div class="task-meta">
-                <span v-if="task.projectName" class="project-name">{{ task.projectName }}</span>
-                <span v-if="task.dueDate" class="task-date">{{ formatDate(task.dueDate) }}</span>
-              </div>
-              <div class="task-divider"></div>
-            </div>
+          <div v-for="task in tasks" :key="task.id">
+            <TaskCard :task="task" :show-project-name="false" />
           </div>
           <div v-if="tasks.length === 0" class="empty-state">
             <p>暂无任务，点击右上角按钮创建新任务</p>
@@ -135,6 +118,7 @@ import IconPicker from './IconPicker.vue'
 import { getIconSVG } from '@/icons/icons'
 import { ICON_IDS } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
+import TaskCard from './TaskCard.vue'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -193,7 +177,10 @@ const loadProjectTasks = async () => {
       isCompleted: task.status === 'completed',
       hasChildren: task.subTasks && task.subTasks.length > 0,
       projectName: '',
-      expanded: false
+      expanded: false,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      dueDate: task.dueDate
     }))
   } catch (error) {
     console.error('加载项目任务失败:', error)
@@ -342,8 +329,14 @@ function handleCreateTask() {
 
 // 每次弹窗打开时都加载任务列表
 watch(() => showTaskPanel.value, (val) => {
-  if (!val) loadProjectTasks()
+  if (!val) setTimeout(() => loadProjectTasks(), 200)
 })
+
+const formatShortDate = (timestamp: number) => {
+  const date = new Date(timestamp)
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
 onMounted(() => {
   loadProjectTasks()
 })
@@ -372,13 +365,12 @@ onMounted(() => {
 }
 
 .dialog-header {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: flex-start;
   padding: 16px 20px 8px 20px;
-  .back-btn, .more-btn { 
+  .back-btn { 
     font-size: 20px; 
     padding: 8px;
   }
-  .header-spacer { flex: 1; }
 }
 
 .project-info-row {

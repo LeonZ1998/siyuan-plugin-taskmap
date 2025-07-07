@@ -75,6 +75,12 @@ watch(() => props.modelValue, (val) => {
 })
 
 watch(localMode, (val) => {
+  if (val === 'single') {
+    localSingleDate.value = localRangeStart.value || new Date()
+  } else if (val === 'range') {
+    localRangeStart.value = localSingleDate.value || new Date()
+    localRangeEnd.value = localSingleDate.value || new Date()
+  }
   emit('update:modelValue', { ...props.modelValue, mode: val })
 })
 watch(localSingleDate, (val) => {
@@ -88,10 +94,10 @@ watch(localUseTargetTime, (val) => {
   }
 })
 watch(localRangeStart, (val) => {
-  emit('update:modelValue', { ...props.modelValue, rangeStart: val })
+  emit('update:modelValue', { ...props.modelValue, rangeStart: val instanceof Date ? val : new Date(val) })
 })
 watch(localRangeEnd, (val) => {
-  emit('update:modelValue', { ...props.modelValue, rangeEnd: val })
+  emit('update:modelValue', { ...props.modelValue, rangeEnd: val instanceof Date ? val : new Date(val) })
 })
 
 function onSingleDateChange(val: Date) {
