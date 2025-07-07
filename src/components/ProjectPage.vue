@@ -69,8 +69,10 @@ const props = withDefaults(defineProps<Props>(), {
 // 计算属性
 const isDarkTheme = computed(() => props.theme === 'dark')
 const progressPercentage = computed(() => {
-  if (props.project.totalTasks === 0) return 0
-  return Math.round((props.project.completedTasks / props.project.totalTasks) * 100)
+  const total = Number(props.project.totalTasks)
+  const completed = Number(props.project.completedTasks)
+  if (!total || isNaN(total) || isNaN(completed)) return 0
+  return Math.round((completed / total) * 100)
 })
 </script>
 

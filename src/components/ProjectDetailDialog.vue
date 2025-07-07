@@ -15,6 +15,25 @@
         <el-button link class="back-btn" @click="$emit('close')">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
+        <div class="header-actions">
+          <el-dropdown @command="handleProjectAction" trigger="click">
+            <el-button link class="more-btn">
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="archive" :disabled="props.project?.status === 'archived'">
+                  <el-icon><Folder /></el-icon>
+                  归档项目
+                </el-dropdown-item>
+                <el-dropdown-item command="delete" divided>
+                  <el-icon style="color: #f56c6c;"><Delete /></el-icon>
+                  <span style="color: #f56c6c;">删除项目</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </div>
 
       <!-- 2. 项目信息行 -->
@@ -107,14 +126,14 @@
       </div>
     </div>
     <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" :range="[props.project?.startDate, props.project?.endDate]" />
-    <TaskDetailPanel v-model="showTaskPanel" :key="showTaskPanelKey" :project-id="props.project.id" @task-saved="loadProjectTasks" />
+    <TaskDetailPanel v-model="showTaskPanel" :key="showTaskPanelKey" :project-id="props.project?.id" @task-saved="onTaskSaved" />
   </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue'
-import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput } from 'element-plus'
+import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar, Delete } from '@element-plus/icons-vue'
+import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
 import { ProjectType } from '@/types/project.d'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
@@ -145,7 +164,7 @@ const props = defineProps({
   modelValue: Boolean,
   project: { type: Object, default: () => ({ name: '未命名项目', type: ProjectType.WORK_CAREER, icon: '', }) }
 })
-const emit = defineEmits(['update:modelValue', 'close', 'create-task'])
+const emit = defineEmits(['update:modelValue', 'close', 'create-task', 'project-deleted', 'project-task-changed'])
 
 const projectType = ref(props.project?.type || ProjectType.WORK_CAREER)
 const projectTypes = [
@@ -175,7 +194,8 @@ const loadProjectTasks = async () => {
   if (!props.project?.id) return
   
   try {
-    const projectTasks = await taskDB.getByProject(props.project.id)
+    const projectId = props.project.id
+    const projectTasks = await taskDB.getByProject(projectId)
     tasks.value = projectTasks.map(task => ({
       ...task,
       isCompleted: task.status === 'completed',
@@ -350,6 +370,75 @@ async function onUpdateTaskName(task, newName) {
 onMounted(() => {
   loadProjectTasks()
 })
+
+async function handleProjectAction(command: string) {
+  if (!props.project || !props.project.id) {
+    console.error('项目信息不完整，无法执行操作')
+    return
+  }
+  
+  const projectId = props.project.id
+  
+  if (command === 'archive') {
+    try {
+      await ElMessageBox.confirm(
+        '确定要归档这个项目吗？归档后项目将不再显示在活跃项目列表中。',
+        '归档项目',
+        {
+          confirmButtonText: '确定归档',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+      
+      // 更新项目状态为已归档
+      await projectDB.update(projectId, { status: 'archived' })
+      props.project.status = 'archived'
+      
+      // 关闭对话框
+      emit('update:modelValue', false)
+      emit('close')
+    } catch (error) {
+      // 用户取消操作
+      console.log('用户取消归档操作')
+    }
+  } else if (command === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        '确定要删除这个项目吗？删除后项目及其所有任务将无法恢复。',
+        '删除项目',
+        {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'error',
+        }
+      )
+      
+      // 删除项目下的所有任务
+      const projectTasks = await taskDB.getByProject(projectId)
+      for (const task of projectTasks) {
+        await taskDB.delete(task.id)
+      }
+      
+      // 删除项目
+      await projectDB.delete(projectId)
+      
+      // 关闭对话框
+      emit('update:modelValue', false)
+      emit('close')
+      console.log('emit project-deleted', projectId)
+      emit('project-deleted', projectId)
+    } catch (error) {
+      // 用户取消操作
+      console.log('用户取消删除操作')
+    }
+  }
+}
+
+function onTaskSaved() {
+  loadProjectTasks()
+  emit('project-task-changed')
+}
 </script>
 
 <style lang="scss" scoped>
@@ -380,6 +469,17 @@ onMounted(() => {
   .back-btn { 
     font-size: 20px; 
     padding: 8px;
+  }
+  .header-actions {
+    margin-left: auto;
+    .more-btn {
+      font-size: 18px;
+      padding: 8px;
+      color: var(--el-text-color-regular);
+      &:hover {
+        color: var(--el-color-primary);
+      }
+    }
   }
 }
 

@@ -39,13 +39,7 @@
             <ProjectPage 
               v-for="project in projects"
               :key="project.id"
-              :project="{
-                id: project.id,
-                name: project.name,
-                daysLeft: 0, // 默认剩余天数
-                completedTasks: project.completedTaskCount || 0,
-                totalTasks: project.taskCount || 0
-              }"
+              :project="project"
               :theme="currentTheme"
               @click="handleProjectCardClick(project)"
             />
@@ -65,12 +59,14 @@
       :project="selectedProject"
       @close="handleProjectDialogClose"
       @create-task="handleCreateTask"
+      @project-deleted="handleProjectDeleted"
+      @project-task-changed="loadProjects"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   Document,
   Edit,
@@ -94,7 +90,7 @@ const { isDark, currentTheme, toggleTheme, setTheme, isSystemDark } = useTheme()
 // 响应式数据
 const inputText = ref('')
 const currentPage = ref('project') // 当前显示的页面
-const projects = ref<any[]>([]) // 项目列表
+const projects = ref([])
 const tasks = ref<any[]>([]) // 任务列表
 const showProjectDialog = ref(false)
 const selectedProject = ref<any>(null)
@@ -140,7 +136,7 @@ const handleEnter = async () => {
     // 新建项目
     const projectName = inputText.value.trim() || '未命名'
     try {
-      const newProject = await projectDB.create({
+      await projectDB.create({
         name: projectName,
         type: ProjectType.WORK_CAREER, // 默认类型
         status: ProjectStatus.ACTIVE,
@@ -151,14 +147,13 @@ const handleEnter = async () => {
         order: projects.value.length,
         taskCount: 0,
         completedTaskCount: 0,
-        completionRate: 0
+        completionRate: 0,
+        daysLeft: 0,
+        completedTasks: 0,
+        totalTasks: 0
       })
-      
-      // 添加到本地项目列表
-      projects.value.push(newProject)
-      console.log('新建项目成功:', newProject)
-      
-      // 清空输入框
+      await loadProjects() // 只信任数据库
+      console.log('新建项目成功')
       inputText.value = ''
     } catch (error) {
       console.error('新建项目失败:', error)
@@ -196,8 +191,25 @@ const handleEnter = async () => {
 const loadProjects = async () => {
   try {
     const projectList = await projectDB.getAll()
-    projects.value = projectList
-    console.log('项目列表加载成功:', projectList)
+    const allTasks = await taskDB.getAll()
+    const today = new Date()
+    projects.value = projectList.map(p => {
+      let daysLeft = 0
+      if (p.endDate) {
+        const end = new Date(p.endDate)
+        daysLeft = Math.ceil((end.getTime() - today.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+      }
+      // 动态统计任务数
+      const projectTasks = allTasks.filter(t => t.projectId === p.id)
+      const totalTasks = projectTasks.length
+      const completedTasks = projectTasks.filter(t => t.status === 'completed' || t.isCompleted).length
+      return {
+        ...p,
+        daysLeft,
+        totalTasks,
+        completedTasks
+      }
+    })
   } catch (error) {
     console.error('加载项目列表失败:', error)
   }
@@ -234,6 +246,19 @@ const handleCreateTask = () => {
   // 处理创建任务逻辑
   console.log('创建任务')
   // 这里可以跳转到任务页面或打开任务创建对话框
+}
+
+const handleProjectDeleted = async () => {
+  showProjectDialog.value = false
+  selectedProject.value = null
+  await nextTick()
+  const projectList = await projectDB.getAll()
+  projects.value = projectList.map(p => ({
+    ...p,
+    daysLeft: typeof p.daysLeft === 'number' ? p.daysLeft : 0,
+    completedTasks: typeof p.completedTasks === 'number' ? p.completedTasks : (p.completedTaskCount ?? 0),
+    totalTasks: typeof p.totalTasks === 'number' ? p.totalTasks : (p.taskCount ?? 0)
+  }))
 }
 
 // 组件挂载时加载数据
