@@ -4,7 +4,8 @@
     <div class="project-header">
       <div class="project-info">
         <div class="project-icon">
-          <el-icon :size="20">
+          <span v-if="project.icon" v-html="getIconSVG(project.icon)" style="width:24px;height:24px;"></span>
+          <el-icon v-else :size="20">
             <Folder />
           </el-icon>
         </div>
@@ -39,6 +40,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Folder } from '@element-plus/icons-vue'
+import { getIconSVG } from '@/icons/icons'
 
 // 定义组件属性
 interface Props {
@@ -140,7 +142,8 @@ const progressPercentage = computed(() => {
 .project-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  background: none !important;
   border-radius: 8px;
   display: flex;
   align-items: center;

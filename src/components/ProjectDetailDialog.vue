@@ -22,52 +22,70 @@
       </div>
 
       <!-- 2. 项目信息行 -->
-      <div class="project-info-row">
-        <el-avatar :icon="Folder" class="project-avatar" />
-        <div class="project-title">
-          <div class="project-name">{{ project?.name || '未命名项目' }}</div>
-        </div>
-        <div class="project-type-wrapper">
-          <el-select v-model="projectType" class="project-type-select" size="small">
-            <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
-          </el-select>
-        </div>
-        <el-button
-          class="project-date-btn"
-          style="color: #2563eb"
-          text
-          @click="showSetDateDialog = true"
+      <div class="project-info-row edit-row">
+        <el-popover
+          placement="bottom-start"
+          trigger="click"
+          width="auto"
         >
-          <el-icon color="#2563eb"><Calendar /></el-icon>
-          <span style="color: #2563eb">
-            {{ formatBtnDate(selectedDateInfo) }}
-          </span>
-        </el-button>
-        <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" />
+          <template #reference>
+            <el-avatar
+              class="project-avatar icon-avatar"
+              :src="''"
+              :icon="null"
+              @click.stop="showIconPicker = true"
+            >
+              <span v-html="getIconSVG(currentIcon)"></span>
+            </el-avatar>
+          </template>
+          <IconPicker v-model="currentIcon" />
+        </el-popover>
+        <el-input
+          v-model="editableProjectName"
+          class="project-name-input"
+          :class="{ 'is-focus': isEditingName }"
+          :readonly="!isEditingName"
+          @focus="isEditingName = true"
+          @blur="onNameBlur"
+          @click="isEditingName = true"
+          placeholder="未命名项目"
+        />
+        <el-select v-model="projectType" class="project-type-select" size="small">
+          <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
+        </el-select>
       </div>
 
       <!-- 3. 四个统计卡片 -->
-      <div class="project-stats-row">
-        <div class="stat-card">
-          <div class="stat-main">{{ formatDaysLeft() }}</div>
-          <div class="stat-sub">截止时间</div>
-          <el-icon class="stat-icon"><Clock /></el-icon>
-        </div>
-        <div class="stat-card">
-          <div class="stat-main">{{ project?.completionRate || 0 }}%</div>
-          <div class="stat-sub">项目进度</div>
-          <el-progress :percentage="project?.completionRate || 0" :show-text="false" :stroke-width="4" />
-        </div>
-        <div class="stat-card">
-          <div class="stat-main">{{ project?.completedTaskCount || 0 }}</div>
-          <div class="stat-sub">已完成任务</div>
-          <el-icon class="stat-icon"><Flag /></el-icon>
-        </div>
-        <div class="stat-card">
-          <div class="stat-main">{{ formatTotalTime() }}</div>
-          <div class="stat-sub">总计用时</div>
-          <el-icon class="stat-icon"><Timer /></el-icon>
-        </div>
+      <div class="project-stats-row stats-grid">
+        <el-card class="stat-card" shadow="hover" @click="showSetDateDialog = true" style="cursor:pointer;">
+          <div class="stat-main">
+            <el-icon class="stat-icon"><Clock /></el-icon>
+            {{ formatDaysLeft() }}
+          </div>
+          <div class="stat-deadline">{{ formatDeadlineDate() }} 截止</div>
+          <el-progress :percentage="Number(deadlineProgress)" :show-text="false" class="stat-progress" />
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-main">
+            <el-progress type="circle" :percentage="progressPercent"  :show-text="false" />
+            <span>{{ progressPercent }}%</span>
+          </div>
+          <div class="stat-sub">目标进度</div>
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-main">
+            <el-icon class="stat-icon"><Flag /></el-icon>
+            {{ project?.completedTaskCount || 0 }}
+          </div>
+          <div class="stat-sub">已完成次数</div>
+        </el-card>
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-main">
+            <el-icon class="stat-icon"><Timer /></el-icon>
+            {{ formatTotalTime() }}
+          </div>
+          <div class="stat-sub">目标计时</div>
+        </el-card>
       </div>
 
       <!-- 4. 任务列表区域（可滚动） -->
@@ -101,16 +119,22 @@
         <el-button type="primary" round @click="$emit('create-task')">创建任务</el-button>
       </div>
     </div>
+    <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" :range="[props.project?.startDate, props.project?.endDate]" />
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker } from 'element-plus'
+import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput } from 'element-plus'
 import { ProjectType } from '@/types/project.d'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
+import IconPicker from './IconPicker.vue'
+import { getIconSVG } from '@/icons/icons'
+import { nextTick } from 'vue'
+import { ICON_IDS } from '@/icons/icons'
+
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
 const onDateConfirm = (val: any) => {
@@ -119,9 +143,11 @@ const onDateConfirm = (val: any) => {
     const [start, end] = val.range
     props.project.startDate = start
     props.project.endDate = end
+    props.project.dueDate = end
     projectDB.update(props.project.id, {
       startDate: start,
       endDate: end,
+      dueDate: end
     })
   }
 }
@@ -144,6 +170,16 @@ const projectTypes = [
   { value: ProjectType.SOCIAL_RELATIONSHIPS, label: '人际社群' },
 ]
 const tasks = ref<any[]>([])
+
+const editableProjectName = ref(props.project?.name || '')
+const isEditingName = ref(false)
+const onNameBlur = () => {
+  isEditingName.value = false
+  if (props.project && props.project.id && editableProjectName.value !== props.project.name) {
+    props.project.name = editableProjectName.value
+    projectDB.update(props.project.id, { name: editableProjectName.value })
+  }
+}
 
 // 加载项目任务
 const loadProjectTasks = async () => {
@@ -208,18 +244,6 @@ const formatDate = (timestamp: number) => {
   return date.toLocaleDateString()
 }
 
-// 按钮日期格式化
-const formatBtnDate = (dateInfo: any) => {
-  if (!dateInfo || !dateInfo.range || dateInfo.range.length !== 2) return '设置日期'
-  const [start, end] = dateInfo.range
-  if (!start || !end) return '设置日期'
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  const startStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
-  const endStr = `${endDate.getMonth() + 1}月${endDate.getDate()}日`
-  return `${startStr} - ${endStr}`
-}
-
 // 监听项目变化，重新加载任务
 watch(() => props.project?.id, () => {
   if (props.modelValue) {
@@ -250,6 +274,9 @@ watch(
         range: [props.project.startDate, props.project.endDate]
       }
     }
+    if (val && props.project && typeof props.project.name === 'string') {
+      editableProjectName.value = props.project.name
+    }
   },
   { immediate: true }
 )
@@ -263,6 +290,39 @@ function toDateStr(val: number | string | Date | null | undefined): string {
   const day = d.getDate().toString().padStart(2, '0')
   return `${y}-${m}-${day}`
 }
+
+const formatDeadlineDate = () => {
+  if (!props.project?.endDate) return ''
+  const d = new Date(props.project.endDate)
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+const progressPercent = Number(props.project?.completionRate) || 0;
+const deadlineProgress = computed(() => {
+  if (!props.project?.endDate) return 0
+  const now = new Date()
+  const end = new Date(props.project.endDate)
+  const total = end.getTime() - (props.project?.startDate ? new Date(props.project.startDate).getTime() : now.getTime())
+  const left = end.getTime() - now.getTime()
+  if (total <= 0) return 100
+  let percent = ((total - left) / total) * 100
+  if (percent < 0) percent = 0
+  if (percent > 100) percent = 100
+  return Math.round(percent)
+})
+
+const showIconPicker = ref(false)
+const currentIcon = ref(props.project?.icon || Object.values(ICON_IDS)[0])
+
+watch(() => props.project?.icon, (val) => {
+  if (val) currentIcon.value = val
+})
+
+watch(currentIcon, (val) => {
+  if (props.project && props.project.id && val !== props.project.icon) {
+    props.project.icon = val
+    projectDB.update(props.project.id, { icon: val })
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -301,8 +361,10 @@ function toDateStr(val: number | string | Date | null | undefined): string {
   display: flex; align-items: center; margin: 16px 20px 20px 20px;
   .project-avatar { 
     margin-right: 16px; 
-    width: 48px;
-    height: 48px;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
   }
   .project-title { flex: 1; }
   .project-name { 
@@ -311,7 +373,10 @@ function toDateStr(val: number | string | Date | null | undefined): string {
     line-height: 1.2;
   }
   .project-type-wrapper { margin-left: 16px; }
-  .project-type-select { width: 140px; }
+  .project-type-select {
+    width: 100px !important;
+    min-width: 80px !important;
+  }
   .project-date-btn-wrapper {
     margin-left: 16px;
     display: flex;
@@ -320,41 +385,60 @@ function toDateStr(val: number | string | Date | null | undefined): string {
 }
 
 .project-stats-row {
-  display: flex; gap: 12px; margin: 0 20px 24px 20px;
-  .stat-card {
-    flex: 1; 
-    border-radius: 12px; 
-    padding: 16px 12px;
-    display: flex; 
-    flex-direction: column; 
-    align-items: center;
-    text-align: center;
-    position: relative;
-    background: var(--el-fill-color-light);
-    
-    .stat-main { 
-      font-size: 20px; 
-      font-weight: 600; 
-      margin-bottom: 4px; 
-      line-height: 1.2;
-      color: var(--el-text-color-primary);
-    }
-    .stat-sub { 
-      font-size: 12px; 
-      margin-bottom: 8px; 
-      line-height: 1.2;
-      color: var(--el-text-color-secondary);
-    }
-    .stat-icon { 
-      font-size: 16px;
-      margin-top: 4px; 
-      color: var(--el-text-color-secondary);
-    }
-    .el-progress { 
-      width: 100%; 
-      margin-top: 8px; 
-    }
-  }
+  display: flex;
+  gap: 16px;
+  margin: 24px 20px 24px 20px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+  margin: 24px 20px 24px 20px;
+}
+.stat-card {
+  border-radius: 16px !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  background: #18181c !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px 0 #00000022 !important;
+  cursor: pointer !important;
+  padding: 8px 8px 6px 8px !important;
+}
+.stat-card .el-card__body {
+  padding: 0 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+.stat-main {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-sub, .stat-deadline {
+  font-size: 13px;
+  color: #b0b0b8;
+  margin-bottom: 6px;
+  font-weight: 400;
+}
+.stat-icon {
+  font-size: 18px;
+  margin-right: 6px;
+  color: #6c6cff;
+}
+.stat-progress {
+  width: 100%;
+  margin-top: 8px;
 }
 
 .task-list-container {
@@ -523,5 +607,66 @@ function toDateStr(val: number | string | Date | null | undefined): string {
   color: transparent !important;
   caret-color: transparent !important;
   text-shadow: 0 0 0 #333;
+}
+
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 20px 0 20px;
+}
+.project-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  margin-right: 4px;
+}
+.project-type-select {
+  width: 80px !important;
+  min-width: 60px !important;
+  margin-left: 4px;
+}
+.project-name-input {
+  flex: 1;
+  min-width: 0;
+  max-width: 480px;
+  font-size: 20px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  padding: 0 8px;
+}
+.project-name-input .el-input__wrapper {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.project-name-input .el-input__inner {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 0;
+}
+.project-name-input.is-focus .el-input__wrapper,
+.project-name-input:focus-within .el-input__wrapper {
+  border: 1px solid #2563eb !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 2px #2563eb22 !important;
+}
+
+.icon-avatar {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border 0.2s;
+}
+.icon-avatar:hover {
+  border: 2px solid #409EFF;
 }
 </style> 

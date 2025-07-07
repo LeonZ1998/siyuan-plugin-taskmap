@@ -17,14 +17,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   visible: Boolean,
+  range: Array // [startDate, endDate]
 })
 const emit = defineEmits(['update:visible', 'confirm'])
 
 const rangeDate = ref<[Date | null, Date | null]>([null, null])
+
+watch(() => props.visible, (val) => {
+  if (val && props.range && props.range.length === 2) {
+    rangeDate.value = [
+      props.range[0] ? new Date(Number(props.range[0])) : null,
+      props.range[1] ? new Date(Number(props.range[1])) : null
+    ]
+  }
+})
 
 function onClose() {
   emit('update:visible', false)
