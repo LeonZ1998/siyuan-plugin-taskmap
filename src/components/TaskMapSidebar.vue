@@ -126,7 +126,6 @@ const topIcons = [
 
 // 处理图标点击
 const handleIconClick = (action: string) => {
-  console.log(`点击了 ${action} 图标`)
   currentPage.value = action
 }
 
@@ -153,10 +152,9 @@ const handleEnter = async () => {
         totalTasks: 0
       })
       await loadProjects() // 只信任数据库
-      console.log('新建项目成功')
       inputText.value = ''
     } catch (error) {
-      console.error('新建项目失败:', error)
+      // 新建项目失败
     }
   } else if (currentPage.value === 'task') {
     // 新建任务
@@ -177,12 +175,11 @@ const handleEnter = async () => {
       
       // 添加到本地任务列表
       tasks.value.push(newTask)
-      console.log('新建任务成功:', newTask)
       
       // 清空输入框
       inputText.value = ''
     } catch (error) {
-      console.error('新建任务失败:', error)
+      // 新建任务失败
     }
   }
 }
@@ -211,7 +208,7 @@ const loadProjects = async () => {
       }
     })
   } catch (error) {
-    console.error('加载项目列表失败:', error)
+    // 加载项目列表失败
   }
 }
 
@@ -220,15 +217,14 @@ const loadTasks = async () => {
   try {
     const taskList = await taskDB.getAll()
     tasks.value = taskList
-    console.log('任务列表加载成功:', taskList)
   } catch (error) {
-    console.error('加载任务列表失败:', error)
+    // 加载任务列表失败
   }
 }
 
 // 处理清空
 const handleClear = () => {
-  console.log('输入框已清空')
+  // 输入框已清空
 }
 
 // 处理项目卡片点击
@@ -244,7 +240,6 @@ const handleProjectDialogClose = () => {
 
 const handleCreateTask = () => {
   // 处理创建任务逻辑
-  console.log('创建任务')
   // 这里可以跳转到任务页面或打开任务创建对话框
 }
 
@@ -265,7 +260,6 @@ const handleProjectDeleted = async () => {
 onMounted(async () => {
   await loadProjects()
   await loadTasks()
-  console.log('TaskMap 组件已挂载，当前主题:', currentTheme.value)
 })
 </script>
 

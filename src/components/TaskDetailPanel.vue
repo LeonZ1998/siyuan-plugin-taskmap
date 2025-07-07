@@ -61,25 +61,20 @@ async function onSaveTask() {
   const notes = form.value.note
   // 获取日期数据
   const datePanel = datePanelRef.value
-  console.log('保存任务前的 panelValue', datePanel?.panelValue)
-  let startDate, endDate, dueDate
+  let startDate = null, endDate = null, dueDate = null
   if (datePanel && datePanel.panelValue) {
-    if (datePanel.panelValue.mode === 'single') {
-      const t = datePanel.panelValue.singleDate instanceof Date
-        ? datePanel.panelValue.singleDate.getTime()
-        : Date.now()
-      startDate = endDate = dueDate = t
-    } else {
-      startDate = datePanel.panelValue.rangeStart instanceof Date
-        ? datePanel.panelValue.rangeStart.getTime()
-        : Date.now()
-      endDate = datePanel.panelValue.rangeEnd instanceof Date
-        ? datePanel.panelValue.rangeEnd.getTime()
-        : Date.now()
-      dueDate = endDate
+    if (datePanel.panelValue.mode === 'single' && datePanel.panelValue.singleDate) {
+      if (datePanel.panelValue.singleDate instanceof Date) {
+        const t = datePanel.panelValue.singleDate.getTime()
+        startDate = endDate = dueDate = t
+      }
+    } else if (datePanel.panelValue.mode === 'range' && datePanel.panelValue.rangeStart && datePanel.panelValue.rangeEnd) {
+      if (datePanel.panelValue.rangeStart instanceof Date && datePanel.panelValue.rangeEnd instanceof Date) {
+        startDate = datePanel.panelValue.rangeStart.getTime()
+        endDate = datePanel.panelValue.rangeEnd.getTime()
+        dueDate = endDate
+      }
     }
-  } else {
-    startDate = endDate = dueDate = Date.now()
   }
   // 新建任务
   await taskDB.create({

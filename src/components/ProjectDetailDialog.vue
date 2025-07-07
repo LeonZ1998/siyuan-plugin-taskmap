@@ -116,7 +116,9 @@
             <TaskCard
               :task="task"
               :show-project-name="false"
+              :all-projects="allProjects"
               @update:taskName="(newName) => onUpdateTaskName(task, newName)"
+              @move-task="onMoveTask"
             />
           </div>
           <div v-if="tasks.length === 0" class="empty-state">
@@ -178,6 +180,7 @@ const projectTypes = [
   { value: ProjectType.SOCIAL_RELATIONSHIPS, label: '人际社群' },
 ]
 const tasks = ref<any[]>([])
+const allProjects = ref<any[]>([])
 
 const editableProjectName = ref(props.project?.name || '')
 const isEditingName = ref(false)
@@ -207,7 +210,7 @@ const loadProjectTasks = async () => {
       dueDate: task.dueDate
     }))
   } catch (error) {
-    console.error('加载项目任务失败:', error)
+    // 加载项目任务失败
     tasks.value = []
   }
 }
@@ -367,13 +370,14 @@ async function onUpdateTaskName(task, newName) {
   await taskDB.update(task.id, { name: newName })
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadProjectTasks()
+  allProjects.value = await projectDB.getAll()
 })
 
 async function handleProjectAction(command: string) {
   if (!props.project || !props.project.id) {
-    console.error('项目信息不完整，无法执行操作')
+    // 项目信息不完整，无法执行操作
     return
   }
   
@@ -400,7 +404,6 @@ async function handleProjectAction(command: string) {
       emit('close')
     } catch (error) {
       // 用户取消操作
-      console.log('用户取消归档操作')
     }
   } else if (command === 'delete') {
     try {
@@ -426,17 +429,24 @@ async function handleProjectAction(command: string) {
       // 关闭对话框
       emit('update:modelValue', false)
       emit('close')
-      console.log('emit project-deleted', projectId)
       emit('project-deleted', projectId)
     } catch (error) {
       // 用户取消操作
-      console.log('用户取消删除操作')
     }
   }
 }
 
 function onTaskSaved() {
   loadProjectTasks()
+  emit('project-task-changed')
+}
+
+async function onMoveTask({ task, project }) {
+  // 更新任务的 projectId
+  await taskDB.update(task.id, { projectId: project.id })
+  // 重新加载项目任务列表
+  await loadProjectTasks()
+  // 通知父组件任务已变更
   emit('project-task-changed')
 }
 </script>

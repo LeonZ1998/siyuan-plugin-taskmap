@@ -2,7 +2,7 @@
   <div class="task-page">
     <div class="page-content">
       <div class="task-list">
-        <TaskCard v-for="task in tasks" :key="task.id" :task="task" :show-project-name="true" @update:taskName="(newName) => onUpdateTaskName(task, newName)" />
+        <TaskCard v-for="task in tasks" :key="task.id" :task="task" :show-project-name="true" :all-projects="allProjects" @update:taskName="(newName) => onUpdateTaskName(task, newName)" @move-task="onMoveTask" />
         <div v-if="tasks.length === 0" class="empty-state">
           <p>暂无任务，请输入任务名称创建新任务</p>
         </div>
@@ -18,12 +18,14 @@ import { taskDB, projectDB } from '@/utils/dbManager'
 import TaskCard from './TaskCard.vue'
 
 const tasks = ref<any[]>([])
+const allProjects = ref<any[]>([])
 
 onMounted(async () => {
   // 加载所有任务
   const allTasks = await taskDB.getAll()
   // 加载所有项目
   const projects = await projectDB.getAll()
+  allProjects.value = projects
   const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
   // 为每个任务补充 projectName
   tasks.value = allTasks.map(task => ({
@@ -57,6 +59,17 @@ async function onUpdateTaskName(task, newName) {
   task.name = newName
   // 直接更新数据库
   await taskDB.update(task.id, { name: newName })
+}
+
+async function onMoveTask({ task, project }) {
+  await taskDB.update(task.id, { projectId: project.id })
+  // 刷新任务列表
+  const allTasks = await taskDB.getAll()
+  const projectMap = Object.fromEntries(allProjects.value.map(p => [p.id, p.name]))
+  tasks.value = allTasks.map(task => ({
+    ...task,
+    projectName: task.projectId ? projectMap[task.projectId] : ''
+  }))
 }
 </script>
 
