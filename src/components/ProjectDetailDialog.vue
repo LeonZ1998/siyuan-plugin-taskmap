@@ -6,7 +6,7 @@
     top="8vh"
     :show-close="false"
     class="project-detail-dialog"
-    :close-on-click-modal="false"
+    :close-on-click-modal="true"
     append-to-body
   >
     <div class="dialog-content">
@@ -32,6 +32,18 @@
             <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
           </el-select>
         </div>
+        <el-button
+          class="project-date-btn"
+          style="color: #2563eb"
+          text
+          @click="showSetDateDialog = true"
+        >
+          <el-icon color="#2563eb"><Calendar /></el-icon>
+          <span style="color: #2563eb">
+            {{ formatBtnDate(selectedDateInfo) }}
+          </span>
+        </el-button>
+        <SetDateDialog v-model:visible="showSetDateDialog" @confirm="onDateConfirm" />
       </div>
 
       <!-- 3. 四个统计卡片 -->
@@ -58,31 +70,33 @@
         </div>
       </div>
 
-      <!-- 4. 任务列表 -->
-      <div class="task-list-section">
-        <div class="section-title">待办任务 {{ tasks.length }}</div>
-        <div v-for="task in tasks" :key="task.id" class="task-card">
-          <div class="task-left">
-            <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
-            <el-button v-if="task.hasChildren" class="expand-btn" type="text" size="small" :class="{ expanded: task.expanded }">
-              <el-icon><ArrowRight /></el-icon>
-            </el-button>
-          </div>
-          <div class="task-main">
-            <span class="task-name">{{ task.name }}</span>
-            <div class="task-meta">
-              <span v-if="task.projectName" class="project-name">{{ task.projectName }}</span>
-              <span v-if="task.dueDate" class="task-date">{{ formatDate(task.dueDate) }}</span>
+      <!-- 4. 任务列表区域（可滚动） -->
+      <div class="task-list-container">
+        <div class="task-list-section">
+          <div class="section-title">待办任务 {{ tasks.length }}</div>
+          <div v-for="task in tasks" :key="task.id" class="task-card">
+            <div class="task-left">
+              <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
+              <el-button v-if="task.hasChildren" class="expand-btn" type="text" size="small" :class="{ expanded: task.expanded }">
+                <el-icon><ArrowRight /></el-icon>
+              </el-button>
             </div>
-            <div class="task-divider"></div>
+            <div class="task-main">
+              <span class="task-name">{{ task.name }}</span>
+              <div class="task-meta">
+                <span v-if="task.projectName" class="project-name">{{ task.projectName }}</span>
+                <span v-if="task.dueDate" class="task-date">{{ formatDate(task.dueDate) }}</span>
+              </div>
+              <div class="task-divider"></div>
+            </div>
           </div>
-        </div>
-        <div v-if="tasks.length === 0" class="empty-state">
-          <p>暂无任务，点击下方按钮创建新任务</p>
+          <div v-if="tasks.length === 0" class="empty-state">
+            <p>暂无任务，点击下方按钮创建新任务</p>
+          </div>
         </div>
       </div>
 
-      <!-- 5. 底部按钮 -->
+      <!-- 5. 底部按钮（固定在底部） -->
       <div class="dialog-footer">
         <el-button type="primary" round @click="$emit('create-task')">创建任务</el-button>
       </div>
@@ -91,11 +105,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox } from 'element-plus'
+import { ref, watch } from 'vue'
+import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar } from '@element-plus/icons-vue'
+import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker } from 'element-plus'
 import { ProjectType } from '@/types/project.d'
-import { taskDB } from '@/utils/dbManager'
+import { taskDB, projectDB } from '@/utils/dbManager'
+import SetDateDialog from './SetDateDialog.vue'
+const showSetDateDialog = ref(false)
+const selectedDateInfo = ref<any>(null)
+const onDateConfirm = (val: any) => {
+  selectedDateInfo.value = val
+  if (props.project && props.project.id && val.range && val.range.length === 2) {
+    const [start, end] = val.range
+    props.project.startDate = start
+    props.project.endDate = end
+    projectDB.update(props.project.id, {
+      startDate: start,
+      endDate: end,
+    })
+  }
+}
 
 const props = defineProps({
   modelValue: Boolean,
@@ -179,6 +208,18 @@ const formatDate = (timestamp: number) => {
   return date.toLocaleDateString()
 }
 
+// 按钮日期格式化
+const formatBtnDate = (dateInfo: any) => {
+  if (!dateInfo || !dateInfo.range || dateInfo.range.length !== 2) return '设置日期'
+  const [start, end] = dateInfo.range
+  if (!start || !end) return '设置日期'
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const startStr = `${startDate.getMonth() + 1}月${startDate.getDate()}日`
+  const endStr = `${endDate.getMonth() + 1}月${endDate.getDate()}日`
+  return `${startStr} - ${endStr}`
+}
+
 // 监听项目变化，重新加载任务
 watch(() => props.project?.id, () => {
   if (props.modelValue) {
@@ -199,6 +240,29 @@ watch(() => props.modelValue, (newVal) => {
     loadProjectTasks()
   }
 })
+
+// 自动同步数据库日期到selectedDateInfo
+watch(
+  () => props.modelValue,
+  async (val) => {
+    if (val && props.project && props.project.startDate && props.project.endDate) {
+      selectedDateInfo.value = {
+        range: [props.project.startDate, props.project.endDate]
+      }
+    }
+  },
+  { immediate: true }
+)
+
+function toDateStr(val: number | string | Date | null | undefined): string {
+  if (!val) return ''
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = (d.getMonth() + 1).toString().padStart(2, '0')
+  const day = d.getDate().toString().padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 </script>
 
 <style lang="scss" scoped>
@@ -219,6 +283,8 @@ watch(() => props.modelValue, (newVal) => {
   min-height: 80vh;
   max-height: 92vh;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .dialog-header {
@@ -246,6 +312,11 @@ watch(() => props.modelValue, (newVal) => {
   }
   .project-type-wrapper { margin-left: 16px; }
   .project-type-select { width: 140px; }
+  .project-date-btn-wrapper {
+    margin-left: 16px;
+    display: flex;
+    align-items: center;
+  }
 }
 
 .project-stats-row {
@@ -286,8 +357,15 @@ watch(() => props.modelValue, (newVal) => {
   }
 }
 
+.task-list-container {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0 20px;
+  min-height: 0;
+}
+
 .task-list-section {
-  margin: 0 20px 20px 20px;
+  padding: 0 0 20px 0;
   .section-title { 
     font-size: 16px; 
     font-weight: 600;
@@ -399,13 +477,51 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .dialog-footer {
-  display: flex; justify-content: center; 
+  display: flex; 
+  justify-content: center; 
   margin: 0 20px 20px 20px;
+  flex-shrink: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-light);
   
   .el-button {
     padding: 12px 32px;
     font-size: 14px;
     font-weight: 500;
   }
+}
+
+.project-date-btn {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  color: #888;
+  background: none;
+  border: none;
+  padding: 0 8px;
+  height: 32px;
+  transition: color 0.2s;
+  .el-icon {
+    margin-right: 4px;
+    font-size: 20px;
+  }
+  &.active {
+    color: #2563eb;
+    .el-icon {
+      color: #2563eb;
+    }
+  }
+  &:hover {
+    color: #2563eb;
+    .el-icon {
+      color: #2563eb;
+    }
+  }
+}
+
+:deep(.el-date-editor .el-input__inner) {
+  color: transparent !important;
+  caret-color: transparent !important;
+  text-shadow: 0 0 0 #333;
 }
 </style> 
