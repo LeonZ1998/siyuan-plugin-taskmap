@@ -116,9 +116,7 @@
             :tasks="tasks"
             :all-projects="allProjects"
             :show-project-name="false"
-            @update:taskName="onUpdateTaskName"
-            @move-task="onMoveTask"
-            @sub-task-saved="loadProjectTasks"
+            @refresh="loadProjectTasks"
           />
         </div>
       </div>
@@ -163,7 +161,8 @@ const onDateConfirm = (val: any) => {
 
 const props = defineProps({
   modelValue: Boolean,
-  project: { type: Object, default: () => ({ name: '未命名项目', type: ProjectType.WORK_CAREER, icon: '', }) }
+  project: { type: Object, default: () => ({ name: '未命名项目', type: ProjectType.WORK_CAREER, icon: '', }) },
+  allTasks: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['update:modelValue', 'close', 'create-task', 'project-deleted', 'project-task-changed'])
 
@@ -483,6 +482,9 @@ function onNodeDrop(draggingNode, dropNode, dropType, ev) {
   // 你可以根据 dropType 更新 parentId 和排序
   // 更新后调用 loadProjectTasks() 刷新
 }
+
+const totalTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id)).length)
+const completedTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id) && ((t as any).status === 'completed' || (t as any).isCompleted)).length)
 </script>
 
 <style lang="scss" scoped>

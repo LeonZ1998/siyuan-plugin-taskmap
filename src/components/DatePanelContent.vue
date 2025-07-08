@@ -118,7 +118,7 @@ function onRangeStartChange(val) {
 function onRangeEndChange(val) {
   if (val <= localRangeStart.value) {
     ElMessage.error('结束日期必须晚于开始日期，请重新选择')
-    localRangeEnd.value = ''
+    localRangeEnd.value = null
     return
   }
   if (localUseTargetTime.value) localUseTargetTime.value = false

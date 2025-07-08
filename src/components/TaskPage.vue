@@ -5,27 +5,23 @@
         :tasks="tasks"
         :all-projects="allProjects"
         :show-project-name="true"
-        @update:taskName="onUpdateTaskName"
-        @move-task="onMoveTask"
-        @sub-task-saved="loadTasks"
+        @refresh="loadTasks"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ArrowRight } from '@element-plus/icons-vue'
 import { onMounted, ref } from 'vue'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import TaskTreeGroup from './TaskTreeGroup.vue'
 
+// 所有任务（平铺数组）
 const tasks = ref<any[]>([])
+// 所有项目
 const allProjects = ref<any[]>([])
 
-onMounted(async () => {
-  await loadTasks()
-})
-
+// 加载所有任务和项目
 async function loadTasks() {
   const allTasks = await taskDB.getAll()
   const projects = await projectDB.getAll()
@@ -36,6 +32,8 @@ async function loadTasks() {
     projectName: task.projectId ? projectMap[task.projectId] : ''
   }))
 }
+
+onMounted(loadTasks)
 
 // 格式化日期
 const formatDate = (timestamp: number) => {

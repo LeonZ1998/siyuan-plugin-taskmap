@@ -40,6 +40,7 @@ import { Calendar, ArrowRight } from '@element-plus/icons-vue'
 import TaskDatePanel from './TaskDatePanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { TaskStatus } from '@/types/task.d'
+import { eventBus } from '@/utils/eventBus'
 const props = defineProps<{ modelValue: boolean, projectId?: string, parentId?: string }>()
 const emit = defineEmits(['update:modelValue', 'task-saved'])
 const form = ref({ name: '', note: '', quantify: false })
@@ -93,6 +94,7 @@ async function onSaveTask() {
   })
   emit('update:modelValue', false)
   emit('task-saved')
+  eventBus.emit('global-refresh')
 }
 </script>
 

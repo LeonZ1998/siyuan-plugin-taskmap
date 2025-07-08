@@ -38,17 +38,26 @@
           <div v-if="currentPage === 'project'" class="project-list">
             <ProjectPage 
               v-for="project in projects"
-              :key="project.id"
+              :key="project.id + '-' + allTasks.length"
               :project="project"
+              :all-tasks="allTasks"
               :theme="currentTheme"
               @click="handleProjectCardClick(project)"
+            />
+            <!-- 隐藏的 TaskList 用于监听任务的 @refresh 事件，驱动统计刷新 -->
+            <TaskList
+              v-if="projects.length > 0"
+              :tasks="tasks"
+              :all-projects="projects"
+              style="display: none"
+              @refresh="handleRefresh"
             />
             <div v-if="projects.length === 0" class="empty-state">
               <p>暂无项目，请输入项目名称创建新项目</p>
             </div>
           </div>
           
-          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" />
+          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" @refresh="handleRefresh" />
           <TimerPage v-else-if="currentPage === 'timer'" />
           <StatsPage v-else-if="currentPage === 'stats'" />
         </div>
@@ -66,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Document,
   Edit,
@@ -79,10 +88,12 @@ import TaskPage from './TaskPage.vue'
 import TimerPage from './TimerPage.vue'
 import StatsPage from './StatsPage.vue'
 import ProjectDetailDialog from './ProjectDetailDialog.vue'
+import TaskList from './TaskList.vue'
 // import ThemeToggle from './ThemeToggle.vue' // 已移除，现在自动跟随思源主题
 import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
 import { useTheme } from '@/composables/useTheme'
+import { eventBus } from '@/utils/eventBus'
 
 // 使用主题管理 composable
 const { isDark, currentTheme, toggleTheme, setTheme, isSystemDark } = useTheme()
@@ -94,6 +105,7 @@ const projects = ref([])
 const tasks = ref<any[]>([]) // 任务列表
 const showProjectDialog = ref(false)
 const selectedProject = ref<any>(null)
+const allTasks = ref([])
 
 // 计算属性
 const inputPlaceholder = computed(() => {
@@ -146,10 +158,7 @@ const handleEnter = async () => {
         order: projects.value.length,
         taskCount: 0,
         completedTaskCount: 0,
-        completionRate: 0,
-        daysLeft: 0,
-        completedTasks: 0,
-        totalTasks: 0
+        completionRate: 0
       })
       await loadProjects() // 只信任数据库
       inputText.value = ''
@@ -188,35 +197,33 @@ const handleEnter = async () => {
 const loadProjects = async () => {
   try {
     const projectList = await projectDB.getAll()
-    const allTasks = await taskDB.getAll()
-    const today = new Date()
-    projects.value = projectList.map(p => {
-      let daysLeft = 0
-      if (p.endDate) {
-        const end = new Date(p.endDate)
-        daysLeft = Math.ceil((end.getTime() - today.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
-      }
-      // 动态统计任务数
-      const projectTasks = allTasks.filter(t => t.projectId === p.id)
-      const totalTasks = projectTasks.length
-      const completedTasks = projectTasks.filter(t => t.status === 'completed' || t.isCompleted).length
-      return {
-        ...p,
-        daysLeft,
-        totalTasks,
-        completedTasks
-      }
-    })
+    projects.value = projectList.map(p => ({
+      ...p
+    }))
   } catch (error) {
     // 加载项目列表失败
   }
 }
 
-// 加载任务列表
+function buildTaskTree(flatTasks) {
+  const idMap = {}
+  flatTasks.forEach(t => { idMap[t.id] = { ...t, subTasks: [] } })
+  const tree = []
+  flatTasks.forEach(t => {
+    if (t.parentId && idMap[t.parentId]) {
+      idMap[t.parentId].subTasks.push(idMap[t.id])
+    } else {
+      tree.push(idMap[t.id])
+    }
+  })
+  return tree
+}
+
 const loadTasks = async () => {
   try {
     const taskList = await taskDB.getAll()
-    tasks.value = taskList
+    tasks.value = buildTaskTree(taskList)
+    allTasks.value = [...taskList] // 强制新引用，确保响应式
   } catch (error) {
     // 加载任务列表失败
   }
@@ -249,17 +256,37 @@ const handleProjectDeleted = async () => {
   await nextTick()
   const projectList = await projectDB.getAll()
   projects.value = projectList.map(p => ({
-    ...p,
-    daysLeft: typeof p.daysLeft === 'number' ? p.daysLeft : 0,
-    completedTasks: typeof p.completedTasks === 'number' ? p.completedTasks : (p.completedTaskCount ?? 0),
-    totalTasks: typeof p.totalTasks === 'number' ? p.totalTasks : (p.taskCount ?? 0)
+    ...p
   }))
 }
 
-// 组件挂载时加载数据
-onMounted(async () => {
-  await loadProjects()
+function getTotalTasks(projectId) {
+  return allTasks.value.filter(t => t.projectId === projectId).length
+}
+function getCompletedTasks(projectId) {
+  return allTasks.value.filter(t => t.projectId === projectId && (t.status === 'completed' || t.isCompleted)).length
+}
+function getDaysLeft(endDate) {
+  if (!endDate) return 0
+  const today = new Date()
+  const end = new Date(endDate)
+  return Math.ceil((end.getTime() - today.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+}
+
+const handleRefresh = async () => {
+  await new Promise(resolve => setTimeout(resolve, 100)); // 等待数据库写入完成
   await loadTasks()
+  await loadProjects()
+}
+
+// 组件挂载时加载数据
+onMounted(() => {
+  eventBus.on('global-refresh', handleRefresh)
+  loadProjects()
+  loadTasks()
+})
+onBeforeUnmount(() => {
+  eventBus.off('global-refresh', handleRefresh)
 })
 </script>
 

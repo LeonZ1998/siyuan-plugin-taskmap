@@ -13,14 +13,14 @@
           <div class="project-name">{{ project.name }}</div>
         </div>
       </div>
-      <div class="project-days">剩余 {{ project.daysLeft }} 天</div>
+      <div class="project-days">剩余 {{ daysLeft }} 天</div>
     </div>
 
     <!-- 任务完成状态 -->
     <div class="task-status">
-      <span class="completed-count">{{ project.completedTasks }}</span>
+      <span class="completed-count">{{ completedTasks }}</span>
       <span class="separator">/</span>
-      <span class="total-count">{{ project.totalTasks }}</span>
+      <span class="total-count">{{ totalTasks }}</span>
       <span class="status-text">任务已完成</span>
     </div>
 
@@ -43,36 +43,28 @@ import { Folder } from '@element-plus/icons-vue'
 import { getIconSVG } from '@/icons/icons'
 
 // 定义组件属性
-interface Props {
-  project?: {
-    id: string
-    name: string
-    icon?: string
-    daysLeft: number
-    completedTasks: number
-    totalTasks: number
-  }
-  theme?: 'light' | 'dark'
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  project: () => ({
-    id: '1',
-    name: '示例项目',
-    daysLeft: 15,
-    completedTasks: 8,
-    totalTasks: 12
-  }),
-  theme: 'light'
+const props = defineProps({
+  project: { type: Object, required: true },
+  allTasks: { type: null, required: true },
+  theme: { type: String, default: 'light' }
 })
 
-// 计算属性
 const isDarkTheme = computed(() => props.theme === 'dark')
+const totalTasks = computed(() => props.allTasks.filter(t => String(t.projectId) === String(props.project.id)).length)
+const completedTasks = computed(() =>
+  props.allTasks.filter(
+    t => String(t.projectId) === String(props.project.id) && t.isCompleted
+  ).length
+)
+const daysLeft = computed(() => {
+  if (!props.project.endDate) return 0
+  const today = new Date()
+  const end = new Date(props.project.endDate)
+  return Math.ceil((end.getTime() - today.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
+})
 const progressPercentage = computed(() => {
-  const total = Number(props.project.totalTasks)
-  const completed = Number(props.project.completedTasks)
-  if (!total || isNaN(total) || isNaN(completed)) return 0
-  return Math.round((completed / total) * 100)
+  if (!totalTasks.value) return 0
+  return Math.round((completedTasks.value / totalTasks.value) * 100)
 })
 </script>
 
