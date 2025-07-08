@@ -40,7 +40,7 @@ import { Calendar, ArrowRight } from '@element-plus/icons-vue'
 import TaskDatePanel from './TaskDatePanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { TaskStatus } from '@/types/task.d'
-const props = defineProps<{ modelValue: boolean, projectId?: string }>()
+const props = defineProps<{ modelValue: boolean, projectId?: string, parentId?: string }>()
 const emit = defineEmits(['update:modelValue', 'task-saved'])
 const form = ref({ name: '', note: '', quantify: false })
 const showDatePanel = ref(false)
@@ -81,6 +81,7 @@ async function onSaveTask() {
     name,
     notes,
     projectId: props.projectId,
+    parentId: props.parentId,
     startDate,
     endDate,
     dueDate,

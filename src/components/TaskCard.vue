@@ -1,7 +1,7 @@
 <template>
   <div class="task-card" :class="{ 'is-subtask': !!task.parentId }" @contextmenu.prevent="showMenu($event)">
     <div class="task-left">
-      <el-checkbox class="task-checkbox" :model-value="task.isCompleted" />
+      <el-checkbox class="task-checkbox" :model-value="task.isCompleted" @change="onCheckTask" />
     </div>
     <div class="task-main">
       <span
@@ -77,6 +77,8 @@
 import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 import TaskDetailPanel from './TaskDetailPanel.vue'
+import { taskDB } from '@/utils/dbManager'
+
 const props = defineProps<{ task: any, showProjectName?: boolean, allProjects?: any[] }>()
 const emit = defineEmits(['update:taskName', 'move-task', 'sub-task-saved'])
 const formatShortDate = (timestamp: number) => {
@@ -180,6 +182,25 @@ function onSubTaskSaved() {
 }
 function toggleExpand() {
   props.task.expanded = !props.task.expanded
+}
+
+async function onCheckTask(checked: boolean) {
+  // 递归收集所有子任务id
+  function collectIds(task) {
+    let ids = [task.id]
+    if (task.subTasks && task.subTasks.length > 0) {
+      for (const sub of task.subTasks) {
+        ids = ids.concat(collectIds(sub))
+      }
+    }
+    return ids
+  }
+  const ids = collectIds(props.task)
+  for (const id of ids) {
+    await taskDB.update(id, { isCompleted: checked, status: checked ? 'completed' : 'pending' })
+  }
+  // 通知父组件刷新
+  emit('sub-task-saved')
 }
 </script>
 

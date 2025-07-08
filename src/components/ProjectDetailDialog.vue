@@ -92,7 +92,7 @@
         <el-card class="stat-card" shadow="hover">
           <div class="stat-main">
             <el-icon class="stat-icon"><Flag /></el-icon>
-            {{ project?.completedTaskCount || 0 }}
+            {{ finishedCount }}
           </div>
           <div class="stat-sub">已完成次数</div>
         </el-card>
@@ -109,31 +109,17 @@
       <div class="task-list-container">
         <div class="task-list-section">
           <div class="section-title-row">
-            <div class="section-title">任务列表 {{ tasks.length }}</div>
+            <div class="section-title">任务列表</div>
             <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
           </div>
-          <el-tree
-            :data="taskTree"
-            :props="treeProps"
-            node-key="id"
-            draggable
-            default-expand-all
-            @node-drop="onNodeDrop"
-          >
-            <template #default="{ node, data }">
-              <TaskCard
-                :task="data"
-                :show-project-name="false"
-                :all-projects="allProjects"
-                @update:taskName="(newName) => onUpdateTaskName(data, newName)"
-                @move-task="onMoveTask"
-                @sub-task-saved="loadProjectTasks"
-              />
-            </template>
-          </el-tree>
-          <div v-if="tasks.length === 0" class="empty-state">
-            <p>暂无任务，点击右上角按钮创建新任务</p>
-          </div>
+          <TaskTreeGroup
+            :tasks="tasks"
+            :all-projects="allProjects"
+            :show-project-name="false"
+            @update:taskName="onUpdateTaskName"
+            @move-task="onMoveTask"
+            @sub-task-saved="loadProjectTasks"
+          />
         </div>
       </div>
     </div>
@@ -146,7 +132,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar, Delete } from '@element-plus/icons-vue'
 import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox, ElTree } from 'element-plus'
-import { ProjectType } from '@/types/project.d'
+import { ProjectType, ProjectStatus } from '@/types/project.d'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
 import IconPicker from './IconPicker.vue'
@@ -155,6 +141,8 @@ import { ICON_IDS } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import TaskCard from './TaskCard.vue'
 import 'element-plus/es/components/tree/style/css'
+import TaskList from './TaskList.vue'
+import TaskTreeGroup from './TaskTreeGroup.vue'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -324,12 +312,13 @@ const formatDeadlineDate = () => {
 }
 
 // 计算目标进度百分比
-const progressPercent = ref(0)
-watch(() => [props.project?.taskCount, props.project?.completedTaskCount], () => {
-  const total = Number(props.project?.taskCount) || 0
-  const completed = Number(props.project?.completedTaskCount) || 0
-  progressPercent.value = total === 0 ? 0 : Math.round((completed / total) * 100)
-}, { immediate: true })
+const finishedCount = computed(() => tasks.value.filter(t => t.isCompleted).length)
+const totalCount = computed(() => tasks.value.length)
+const progressPercent = computed(() => {
+  const total = totalCount.value
+  const completed = finishedCount.value
+  return total === 0 ? 0 : Math.round((completed / total) * 100)
+})
 
 const deadlineProgress = computed(() => {
   if (!props.project?.endDate) return 0
@@ -407,8 +396,8 @@ async function handleProjectAction(command: string) {
       )
       
       // 更新项目状态为已归档
-      await projectDB.update(projectId, { status: 'archived' })
-      props.project.status = 'archived'
+      await projectDB.update(projectId, { status: ProjectStatus.ARCHIVED })
+      props.project.status = ProjectStatus.ARCHIVED
       
       // 关闭对话框
       emit('update:modelValue', false)
