@@ -1,17 +1,26 @@
 <template>
-  <div class="taskmap-app">
-    <!-- TaskMap 插件主界面 -->
-    <!-- 菜单功能已在 index.ts 中实现 -->
+  <div>
+    <el-tabs v-model="activeTab" type="card">
+      <el-tab-pane label="计时器" name="timer">
+        <TimerPage />
+      </el-tab-pane>
+      <el-tab-pane label="专注记录" name="history">
+        <FocusHistoryPage />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-// TaskMap 插件 - 主界面组件
-// 菜单功能已在插件主文件中实现
+import { ref } from 'vue';
+import TimerPage from './components/TimerPage.vue';
+import FocusHistoryPage from './components/FocusHistoryPage.vue';
+
+const activeTab = ref('timer');
 </script>
 
-<style lang="scss" scoped>
-.taskmap-app {
-  // 主界面样式
+<style scoped>
+.el-tabs {
+  background: transparent;
 }
 </style>

@@ -57,7 +57,7 @@
             </div>
           </div>
           
-          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" @refresh="handleRefresh" />
+          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" :all-projects="projects" @refresh="handleRefresh" />
           <TimerPage v-else-if="currentPage === 'timer'" />
           <StatsPage v-else-if="currentPage === 'stats'" />
         </div>

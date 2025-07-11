@@ -39,13 +39,18 @@
           <svg style="margin-left: 8px; width: 14px; height: 14px; vertical-align: middle;" viewBox="0 0 1024 1024"><path d="M384 192l256 320-256 320z" fill="currentColor"/></svg>
         </span>
         <div v-if="showMoveMenu" class="context-submenu">
-          <div
-            v-for="project in moveProjects"
-            :key="project.id"
-            class="context-menu-item"
-            @click.stop="onMoveTo(project.id)"
-          >
-            {{ project.name }}
+          <div v-if="moveProjects.length > 0">
+            <div
+              v-for="project in moveProjects"
+              :key="project.id"
+              class="context-menu-item"
+              @click.stop="onMoveTo(project.id)"
+            >
+              {{ project.name }}
+            </div>
+          </div>
+          <div v-else class="context-menu-item" style="color:#aaa;cursor:default;">
+            无其他可选项目
           </div>
         </div>
       </div>
@@ -75,7 +80,6 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
-import { ArrowRight } from '@element-plus/icons-vue'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { eventBus } from '@/utils/eventBus'
@@ -180,13 +184,17 @@ async function onCheckTask(checked: boolean) {
 
 const showMoveMenu = ref(false)
 const moveProjects = computed(() => {
-  // 排除当前任务所在项目
-  return (props.allProjects || []).filter(p => p.id !== props.task.projectId)
+  const all = props.allProjects || []
+  const filtered = all.filter(p => String(p.id) !== String(props.task.projectId))
+  console.log('[TaskCard] allProjects:', all)
+  console.log('[TaskCard] moveProjects:', filtered)
+  return filtered
 })
 async function onMoveTo(projectId: string) {
   await taskDB.update(props.task.id, { projectId })
   menuVisible.value = false
   emit('refresh')
+  eventBus.emit('global-refresh')
 }
 
 async function onDeleteTask() {
@@ -303,7 +311,7 @@ async function onDeleteTask() {
   box-shadow: 0 8px 32px #0004;
   padding: 6px 0;
   color: var(--el-text-color-primary, #fff);
-  overflow: hidden;
+  overflow: visible; /* 关键：允许子菜单溢出 */
 }
 .context-menu-item {
   padding: 10px 24px;
@@ -332,6 +340,7 @@ async function onDeleteTask() {
   box-shadow: 0 8px 32px #0004;
   padding: 6px 0;
   color: var(--el-text-color-primary, #fff);
-  z-index: 10000;
+  z-index: 10001;
+  display: block;
 }
 </style> 

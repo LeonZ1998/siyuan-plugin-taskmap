@@ -8,13 +8,14 @@ import {
   generateTaskId, 
   generateCategoryId, 
   generateTagId, 
-  generateSettingId 
+  generateSettingId,
+  generatePrefixedSiyuanId
 } from './idGenerator';
 
 // 数据库配置
 const dbConfig: DBConfig = {
   name: 'TaskFlowDB',
-  version: 1,
+  version: 2,
   stores: [
     {
       name: 'projects',
@@ -60,6 +61,16 @@ const dbConfig: DBConfig = {
       keyPath: 'key',
       indexes: [
         { name: 'category', keyPath: 'category' }
+      ]
+    },
+    {
+      name: 'timerRecords',
+      keyPath: 'id',
+      indexes: [
+        { name: 'taskId', keyPath: 'taskId' },
+        { name: 'startTime', keyPath: 'startTime' },
+        { name: 'endTime', keyPath: 'endTime' },
+        { name: 'status', keyPath: 'status' }
       ]
     }
   ]
@@ -365,6 +376,43 @@ export const settingsDB = {
   // 根据分类获取配置
   async getByCategory(category: string): Promise<any[]> {
     return dbManager.queryByIndex('settings', 'category', category);
+  }
+};
+
+// 任务计时记录相关操作
+export const timerRecordDB = {
+  // 创建计时记录
+  async create(record: any): Promise<any> {
+    const recordWithId = {
+      ...record,
+      id: record.id || generatePrefixedSiyuanId('ttm')
+    };
+    return dbManager.create('timerRecords', recordWithId);
+  },
+
+  // 获取计时记录
+  async get(id: string): Promise<any> {
+    return dbManager.get('timerRecords', id);
+  },
+
+  // 获取所有计时记录
+  async getAll(): Promise<any[]> {
+    return dbManager.getAll('timerRecords');
+  },
+
+  // 更新计时记录
+  async update(id: string, data: any): Promise<boolean> {
+    return dbManager.update('timerRecords', id, data);
+  },
+
+  // 删除计时记录
+  async delete(id: string): Promise<boolean> {
+    return dbManager.delete('timerRecords', id);
+  },
+
+  // 清空所有计时记录
+  async clear(): Promise<void> {
+    return dbManager.clear('timerRecords');
   }
 };
 
