@@ -132,43 +132,13 @@ export default class TaskMapPlugin extends Plugin {
     const { Menu } = require('siyuan');
     const menu = new Menu();
     
-    // 项目管理
+    // 设置当前笔记为项目
     menu.addItem({
       icon: ICON_IDS.PROJECT,
-      label: '项目管理',
+      label: '设置当前笔记为项目',
       click: () => {
-        console.log('项目管理被点击');
-        this.openProjectManagement();
-      }
-    });
-    
-    // 任务管理
-    menu.addItem({
-      icon: ICON_IDS.TASK,
-      label: '任务管理',
-      click: () => {
-        console.log('任务管理被点击');
-        this.openTaskManagement();
-      }
-    });
-    
-    // 任务计时
-    menu.addItem({
-      icon: ICON_IDS.TIMER,
-      label: '任务计时',
-      click: () => {
-        console.log('任务计时被点击');
-        this.openTaskTimer();
-      }
-    });
-    
-    // 数据统计
-    menu.addItem({
-      icon: ICON_IDS.STATS,
-      label: '数据统计',
-      click: () => {
-        console.log('数据统计被点击');
-        this.openDataStatistics();
+        console.log('设置当前笔记为项目被点击');
+        this.setCurrentNoteAsProject();
       }
     });
     
@@ -193,28 +163,10 @@ export default class TaskMapPlugin extends Plugin {
     });
   }
 
-  // 项目管理
-  openProjectManagement() {
-    console.log('打开项目管理功能');
-    // TODO: 实现项目管理功能
-  }
-
-  // 任务管理
-  openTaskManagement() {
-    console.log('打开任务管理功能');
-    // TODO: 实现任务管理功能
-  }
-
-  // 任务计时
-  openTaskTimer() {
-    console.log('打开任务计时功能');
-    // TODO: 实现任务计时功能
-  }
-
-  // 数据统计
-  openDataStatistics() {
-    console.log('打开数据统计功能');
-    // TODO: 实现数据统计功能
+  // 设置当前笔记为项目
+  setCurrentNoteAsProject() {
+    console.log('设置当前笔记为项目');
+    // TODO: 实现设置当前笔记为项目功能
   }
 
   // 插件设置
