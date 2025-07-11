@@ -23,7 +23,7 @@
               </span>
             </div>
           </template>
-          <TaskDatePanel v-else @closePanel="closeDatePanel" ref="datePanelRef" />
+          <DatePanelContent v-else v-model:modelValue="datePanelValue" @clear="closeDatePanel" ref="datePanelRef" />
         </el-form-item>
         <el-divider />
         <el-form-item>
@@ -37,7 +37,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Calendar, ArrowRight } from '@element-plus/icons-vue'
-import TaskDatePanel from './TaskDatePanel.vue'
+import DatePanelContent from './DatePanelContent.vue'
 import { taskDB } from '@/utils/dbManager'
 import { TaskStatus } from '@/types/task.d'
 import { eventBus } from '@/utils/eventBus'
@@ -46,6 +46,13 @@ const emit = defineEmits(['update:modelValue', 'task-saved'])
 const form = ref({ name: '', note: '', quantify: false })
 const showDatePanel = ref(false)
 const datePanelRef = ref()
+const datePanelValue = ref({
+  mode: 'single',
+  singleDate: new Date(),
+  useTargetTime: false,
+  rangeStart: new Date(),
+  rangeEnd: new Date()
+})
 function onClose() {
   emit('update:modelValue', false)
 }

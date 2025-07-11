@@ -1,12 +1,10 @@
 <template>
   <div class="task-page">
     <div class="page-content">
-      <TaskTreeGroup
-        :tasks="tasks"
-        :all-projects="allProjects"
-        :show-project-name="true"
-        @refresh="loadTasks"
-      />
+      <div v-if="tasks.length === 0" class="empty-state">暂无任务</div>
+      <TaskList v-else :tasks="tasks" :all-projects="allProjects" :show-project-name="true" @refresh="loadTasks">
+        <template #empty></template>
+      </TaskList>
     </div>
   </div>
 </template>
@@ -14,7 +12,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { taskDB, projectDB } from '@/utils/dbManager'
-import TaskTreeGroup from './TaskTreeGroup.vue'
+import TaskList from './TaskList.vue'
+import { buildTaskTree } from '@/utils/example'
 
 // 所有任务（平铺数组）
 const tasks = ref<any[]>([])
@@ -27,10 +26,10 @@ async function loadTasks() {
   const projects = await projectDB.getAll()
   allProjects.value = projects
   const projectMap = Object.fromEntries(projects.map(p => [p.id, p.name]))
-  tasks.value = allTasks.map(task => ({
+  tasks.value = buildTaskTree(allTasks.map(task => ({
     ...task,
     projectName: task.projectId ? projectMap[task.projectId] : ''
-  }))
+  })))
 }
 
 onMounted(loadTasks)
@@ -71,7 +70,6 @@ async function onMoveTask({ task, project }) {
 <style lang="scss" scoped>
 .task-page {
   width: 100%;
-  height: 100%;
   padding: 8px 0;
   .empty-state {
     text-align: center;

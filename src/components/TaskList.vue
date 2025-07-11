@@ -9,6 +9,7 @@
       class="task-tree"
       :expand-on-click-node="false"
       @node-drop="onNodeDrop"
+      :empty-text="''"
     >
       <template #default="{ data }">
         <TaskCard

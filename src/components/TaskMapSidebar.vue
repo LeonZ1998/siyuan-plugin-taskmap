@@ -24,7 +24,6 @@
             :placeholder="inputPlaceholder"
             class="main-input"
             clearable
-            :suffix-icon="Calendar"
             @keyup.enter="handleEnter"
             @clear="handleClear"
           />
@@ -94,6 +93,7 @@ import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
 import { useTheme } from '@/composables/useTheme'
 import { eventBus } from '@/utils/eventBus'
+import { buildTaskTree } from '@/utils/example'
 
 // 使用主题管理 composable
 const { isDark, currentTheme, toggleTheme, setTheme, isSystemDark } = useTheme()
@@ -203,20 +203,6 @@ const loadProjects = async () => {
   } catch (error) {
     // 加载项目列表失败
   }
-}
-
-function buildTaskTree(flatTasks) {
-  const idMap = {}
-  flatTasks.forEach(t => { idMap[t.id] = { ...t, subTasks: [] } })
-  const tree = []
-  flatTasks.forEach(t => {
-    if (t.parentId && idMap[t.parentId]) {
-      idMap[t.parentId].subTasks.push(idMap[t.id])
-    } else {
-      tree.push(idMap[t.id])
-    }
-  })
-  return tree
 }
 
 const loadTasks = async () => {
@@ -541,7 +527,6 @@ onBeforeUnmount(() => {
 
   .footer-content {
     width: 100%;
-    height: 100%;
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;

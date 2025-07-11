@@ -112,12 +112,13 @@
             <div class="section-title">任务列表</div>
             <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
           </div>
-          <TaskTreeGroup
-            :tasks="tasks"
-            :all-projects="allProjects"
-            :show-project-name="false"
-            @refresh="loadProjectTasks"
-          />
+          <div v-if="unfinishedTasks.length === 0 && finishedTasks.length === 0" class="empty-state">暂无任务</div>
+          <TaskList v-else :tasks="unfinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+            <template #empty></template>
+          </TaskList>
+          <TaskList v-if="finishedTasks.length > 0" :tasks="finishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+            <template #empty></template>
+          </TaskList>
         </div>
       </div>
     </div>
@@ -140,7 +141,7 @@ import TaskDetailPanel from './TaskDetailPanel.vue'
 import TaskCard from './TaskCard.vue'
 import 'element-plus/es/components/tree/style/css'
 import TaskList from './TaskList.vue'
-import TaskTreeGroup from './TaskTreeGroup.vue'
+import { buildTaskTree } from '@/utils/example'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -449,32 +450,6 @@ async function onMoveTask({ task, project }) {
   emit('project-task-changed')
 }
 
-const treeProps = {
-  label: 'name',
-  children: 'subTasks',
-  disabled: 'disabled'
-}
-function buildTaskTree(flatTasks) {
-  const idMap = new Map()
-  flatTasks.forEach(t => idMap.set(t.id, { ...t, subTasks: [] }))
-  idMap.forEach(task => {
-    if (!task.subTasks) task.subTasks = []
-  })
-  const tree = []
-  idMap.forEach(task => {
-    // 兼容 parentId 为空、null、undefined 的老数据
-    if (task.parentId) {
-      const parent = idMap.get(task.parentId)
-      if (parent) parent.subTasks.push(task)
-      else tree.push(task)
-    } else {
-      tree.push(task)
-    }
-  })
-  return tree
-}
-const taskTree = computed(() => buildTaskTree(tasks.value))
-
 function onNodeDrop(draggingNode, dropNode, dropType, ev) {
   // 这里实现 parentId、顺序等的数据库更新逻辑
   // draggingNode.data, dropNode.data, dropType
@@ -483,6 +458,8 @@ function onNodeDrop(draggingNode, dropNode, dropType, ev) {
   // 更新后调用 loadProjectTasks() 刷新
 }
 
+const unfinishedTasks = computed(() => buildTaskTree(tasks.value.filter(t => !t.isCompleted)))
+const finishedTasks = computed(() => buildTaskTree(tasks.value.filter(t => t.isCompleted)))
 const totalTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id)).length)
 const completedTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id) && ((t as any).status === 'completed' || (t as any).isCompleted)).length)
 </script>

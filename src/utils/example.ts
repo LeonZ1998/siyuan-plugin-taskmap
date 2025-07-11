@@ -324,3 +324,17 @@ export default {
   runAllExamples,
   performanceTest
 }; 
+
+export function buildTaskTree(flatTasks: any[]) {
+  const idMap: Record<string, any> = {}
+  flatTasks.forEach(t => { idMap[t.id] = { ...t, subTasks: [] } })
+  const tree: any[] = []
+  flatTasks.forEach(t => {
+    if (t.parentId && idMap[t.parentId]) {
+      idMap[t.parentId].subTasks.push(idMap[t.id])
+    } else {
+      tree.push(idMap[t.id])
+    }
+  })
+  return tree
+} 
