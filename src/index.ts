@@ -8,10 +8,10 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 // 导入自定义暗黑模式样式
 import '@/styles/dark.css'
 import PluginInfoString from '@/../plugin.json'
-import { ICONS_SVG, ICON_IDS } from './icons'
+import { ICONS_SVG, ICON_IDS } from './icons/icons'
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
-import TaskMapSidebar from './components/TaskMapSidebar.vue'
+import App from './App.vue'
 import { useTheme } from './composables/useTheme'
 
 let PluginInfo = {
@@ -65,7 +65,7 @@ export default class TaskMapPlugin extends Plugin {
 
     // 添加顶栏按钮
     this.addTopBar({
-      icon: ICON_IDS.TASKMAP,
+      icon: ICON_IDS.Taskmap,
       title: 'TaskMap',
       callback: () => {
         this.showMenu();
@@ -83,7 +83,7 @@ export default class TaskMapPlugin extends Plugin {
       config: {
         position: "LeftTop",
         size: { width: 300, height: 0 },
-        icon: ICON_IDS.TASKMAP_DOCK,
+        icon: ICON_IDS.Taskmap_DOCK,
         title: "TaskMap",
         hotkey: ""
       },
@@ -104,7 +104,7 @@ export default class TaskMapPlugin extends Plugin {
         console.log('TaskMap 侧边栏已初始化');
         
         // 创建Vue应用并挂载到侧边栏
-        const app = createApp(TaskMapSidebar)
+        const app = createApp(App)
         app.use(ElementPlus)
         app.mount(dock.element)
         

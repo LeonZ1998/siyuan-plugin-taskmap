@@ -15,6 +15,21 @@
         <el-button link class="back-btn" @click="$emit('close')">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
+        <div class="header-title">
+          <el-input
+            v-model="editableProjectName"
+            class="header-project-name"
+            :class="{ 'is-focus': isEditingName }"
+            :readonly="!isEditingName"
+            @focus="isEditingName = true"
+            @blur="onNameBlur"
+            @click="isEditingName = true"
+            placeholder="未命名项目"
+          />
+          <el-select v-model="projectType" class="header-project-type" size="small">
+            <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
+          </el-select>
+        </div>
         <div class="header-actions">
           <el-dropdown @command="handleProjectAction" trigger="click">
             <el-button link class="more-btn">
@@ -37,22 +52,10 @@
       </div>
 
       <!-- 2. 项目信息卡片 -->
-      <div class="project-info-card">
+      <div class="project-info-card" style="display: none;">
         <div class="project-info-content">
           <div class="project-details">
-            <el-input
-              v-model="editableProjectName"
-              class="project-name-input"
-              :class="{ 'is-focus': isEditingName }"
-              :readonly="!isEditingName"
-              @focus="isEditingName = true"
-              @blur="onNameBlur"
-              @click="isEditingName = true"
-              placeholder="未命名项目"
-            />
-            <el-select v-model="projectType" class="project-type-select" size="small">
-              <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
-            </el-select>
+            <!-- 项目类型已移动到顶部 -->
           </div>
         </div>
       </div>
@@ -598,6 +601,92 @@ function formatTotalTime(sec: number) {
     }
   }
   
+  .header-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    margin: 0 10px;
+    gap: 10px;
+  }
+
+  .header-project-name {
+    flex: 1;
+    min-width: 0;
+    max-width: unset;
+    margin-right: 0;
+  }
+  .header-project-name .el-input__wrapper {
+    box-shadow: none !important;
+    border: 1.5px solid #d1d5db !important;
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    padding: 0;
+    transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  html.dark .header-project-name .el-input__wrapper {
+    border: 1.5px solid #444 !important;
+    background: rgba(255,255,255,0.06) !important;
+  }
+  .header-project-name .el-input__inner {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 0;
+    color: white !important;
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+  }
+  // 聚焦高亮，未聚焦无边框
+  .header-project-name.is-focus .el-input__wrapper,
+  .header-project-name:focus-within .el-input__wrapper {
+    border: 2px solid #338aff !important;
+    background: rgba(51, 138, 255, 0.08) !important;
+    box-shadow: 0 0 0 2px #338aff33 !important;
+    border-radius: 8px !important;
+  }
+
+  .header-project-type {
+    flex: 0 0 auto;
+    margin-left: 10px;
+    width: 100px !important;
+    min-width: 100px !important;
+  }
+  .header-project-type .el-input__wrapper {
+    box-shadow: none !important;
+    border: 1.5px solid #d1d5db !important;
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 8px !important;
+    padding: 0;
+    transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  html.dark .header-project-type .el-input__wrapper {
+    border: 1.5px solid #444 !important;
+    background: rgba(255,255,255,0.06) !important;
+  }
+  .header-project-type .el-input__inner {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0;
+    color: white !important;
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+  }
+  // 聚焦高亮，未聚焦无边框
+  .header-project-type.is-focus .el-input__wrapper,
+  .header-project-type:focus-within .el-input__wrapper {
+    border: 2px solid #338aff !important;
+    background: rgba(51, 138, 255, 0.08) !important;
+    box-shadow: 0 0 0 2px #338aff33 !important;
+    border-radius: 8px !important;
+  }
+
   .header-actions {
     margin-left: auto;
     .more-btn {
@@ -619,12 +708,11 @@ function formatTotalTime(sec: number) {
 .project-info-card {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 20px;
-  padding: 20px 24px;
+  padding: 16px 24px;
   margin: 20px 24px 24px 24px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: flex-end;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -639,28 +727,22 @@ function formatTotalTime(sec: number) {
 .project-info-content {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .project-details {
-  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  max-width: 900px;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .project-name-input {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 720px;
-  font-size: 18px;
-  font-weight: 600;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  outline: none;
-  padding: 0 8px;
+  max-width: unset;
+  margin-right: 0;
 }
 .project-name-input .el-input__wrapper {
   box-shadow: none !important;
@@ -696,6 +778,8 @@ html.dark .project-name-input .el-input__wrapper {
 }
 
 .project-type-select {
+  flex: 0 0 auto;
+  margin-left: auto;
   width: 120px !important;
   min-width: 100px !important;
   

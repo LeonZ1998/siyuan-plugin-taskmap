@@ -15,7 +15,7 @@ import {
 // 数据库配置
 const dbConfig: DBConfig = {
   name: 'TaskFlowDB',
-  version: 2,
+  version: 3,
   stores: [
     {
       name: 'projects',
@@ -71,6 +71,14 @@ const dbConfig: DBConfig = {
         { name: 'startTime', keyPath: 'startTime' },
         { name: 'endTime', keyPath: 'endTime' },
         { name: 'status', keyPath: 'status' }
+      ]
+    },
+    {
+      name: 'habits',
+      keyPath: 'id',
+      indexes: [
+        { name: 'name', keyPath: 'name' },
+        { name: 'frequency', keyPath: 'frequency' }
       ]
     }
   ]
@@ -413,6 +421,38 @@ export const timerRecordDB = {
   // 清空所有计时记录
   async clear(): Promise<void> {
     return dbManager.clear('timerRecords');
+  }
+};
+
+// 习惯相关操作
+export const habitDB = {
+  // 创建习惯
+  async create(habit: any): Promise<any> {
+    const habitWithId = {
+      ...habit,
+      id: generatePrefixedSiyuanId('habit')
+    };
+    return dbManager.create('habits', habitWithId);
+  },
+
+  // 获取习惯
+  async get(id: string): Promise<any> {
+    return dbManager.get('habits', id);
+  },
+
+  // 获取所有习惯
+  async getAll(): Promise<any[]> {
+    return dbManager.getAll('habits');
+  },
+
+  // 更新习惯
+  async update(id: string, data: any): Promise<boolean> {
+    return dbManager.update('habits', id, data);
+  },
+
+  // 删除习惯
+  async delete(id: string): Promise<boolean> {
+    return dbManager.delete('habits', id);
   }
 };
 

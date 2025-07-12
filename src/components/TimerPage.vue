@@ -4,7 +4,6 @@
       <h3>任务计时</h3>
       <el-button type="primary" class="add-focus-btn" @click="showAddFocusDialog = true">添加专注记录</el-button>
     </div>
-    <p>跟踪您的工作时间</p>
     <div class="page-content">
       <div class="task-selector">
         <el-select
@@ -22,7 +21,6 @@
             :value="task.id"
           />
         </el-select>
-        <div v-if="selectedTask" class="selected-task-name">当前任务：{{ selectedTask.name }}</div>
       </div>
       <div class="timer-display">
         <el-progress
@@ -264,6 +262,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .timer-page {
   width: 100%;
+  min-width: 320px;
   padding: 8px 0;
 }
 
