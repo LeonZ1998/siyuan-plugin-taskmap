@@ -26,37 +26,39 @@
       </div>
     </div>
     <div class="task-divider"></div>
-    <div
-      v-if="menuVisible"
-      class="context-menu"
-      :style="menuStyle"
-      @click.self="menuVisible = false"
-    >
-      <div class="context-menu-item" @click.stop="onAddSubTask">添加子任务</div>
-      <div class="context-menu-item" @mouseenter="showMoveMenu = true" @mouseleave="showMoveMenu = false" style="position: relative;">
-        <span style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-          移动到
-          <svg style="margin-left: 8px; width: 14px; height: 14px; vertical-align: middle;" viewBox="0 0 1024 1024"><path d="M384 192l256 320-256 320z" fill="currentColor"/></svg>
-        </span>
-        <div v-if="showMoveMenu" class="context-submenu">
-          <div v-if="moveProjects.length > 0">
-            <div
-              v-for="project in moveProjects"
-              :key="project.id"
-              class="context-menu-item"
-              @click.stop="onMoveTo(project.id)"
-            >
-              {{ project.name }}
+    <Teleport to="body">
+      <div
+        v-if="menuVisible"
+        class="context-menu"
+        :style="menuStyle"
+        @click.self="menuVisible = false"
+      >
+        <div class="context-menu-item" @click.stop="onAddSubTask">添加子任务</div>
+        <div class="context-menu-item" @mouseenter="showMoveMenu = true" @mouseleave="showMoveMenu = false" style="position: relative;">
+          <span style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            移动到
+            <svg style="margin-left: 8px; width: 14px; height: 14px; vertical-align: middle;" viewBox="0 0 1024 1024"><path d="M384 192l256 320-256 320z" fill="currentColor"/></svg>
+          </span>
+          <div v-if="showMoveMenu" class="context-submenu">
+            <div v-if="moveProjects.length > 0">
+              <div
+                v-for="project in moveProjects"
+                :key="project.id"
+                class="context-menu-item"
+                @click.stop="onMoveTo(project.id)"
+              >
+                {{ project.name }}
+              </div>
+            </div>
+            <div v-else class="context-menu-item" style="color:#aaa;cursor:default;">
+              无其他可选项目
             </div>
           </div>
-          <div v-else class="context-menu-item" style="color:#aaa;cursor:default;">
-            无其他可选项目
-          </div>
         </div>
+        <div class="context-menu-item" @click.stop="onStartTimer">开始计时</div>
+        <div class="context-menu-item" @click.stop="onDeleteTask" style="color:#f56c6c;">删除任务</div>
       </div>
-      <div class="context-menu-item" @click.stop="onStartTimer">开始计时</div>
-      <div class="context-menu-item" @click.stop="onDeleteTask" style="color:#f56c6c;">删除任务</div>
-    </div>
+    </Teleport>
     <TaskDetailPanel
       v-if="showAddSubTaskPanel"
       :model-value="showAddSubTaskPanel"
@@ -143,9 +145,11 @@ function showMenu(e: MouseEvent) {
   menuStyle.value = {
     left: e.clientX + 'px',
     top: e.clientY + 'px',
-    zIndex: 9999
+    zIndex: 19999 // 提高z-index，防止被遮挡
   }
   menuVisible.value = true
+  // 调试日志
+  console.log('[TaskCard] showMenu at', menuStyle.value.left, menuStyle.value.top, 'for task', props.task.id);
 }
 function onClickOutside(e: MouseEvent) {
   if (!menuVisible.value) return
@@ -157,8 +161,13 @@ function onClickOutside(e: MouseEvent) {
 onMounted(() => {
   document.addEventListener('mousedown', onClickOutside)
   eventBus.on('show-task-menu', ({ event, taskId }) => {
-    if (taskId === props.task.id) {
+    // 兼容字符串和数字类型
+    if (String(taskId) === String(props.task.id)) {
+      console.log('[TaskCard] show-task-menu received for', taskId, props.task.id);
       showMenu(event);
+    } else {
+      // 便于调试
+      // console.log('[TaskCard] show-task-menu ignored', taskId, props.task.id);
     }
   });
 });
@@ -302,16 +311,21 @@ async function onTaskDetailSaved() {
   text-decoration: line-through;
 }
 .task-card.is-subtask {
+  padding-left: 16px;
+}
+.task-card.is-subtask .task-card.is-subtask {
   padding-left: 32px;
+}
+.task-card.is-subtask .task-card.is-subtask .task-card.is-subtask {
+  padding-left: 48px;
 }
 .task-left {
   display: flex;
   align-items: center;
-  margin-right: 4px;
+  margin-right: 0;
 }
 .task-checkbox {
-  margin: 0 4px 0 8px;
-  flex-shrink: 0;
+  margin-right: 8px;
 }
 .task-main {
   display: flex;
@@ -326,7 +340,7 @@ async function onTaskDetailSaved() {
 .task-name {
   font-size: 15px;
   font-weight: 500;
-  color: inherit;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -377,7 +391,7 @@ async function onTaskDetailSaved() {
 }
 .context-menu {
   position: fixed;
-  z-index: 9999;
+  z-index: 19999;
   min-width: 140px;
   background: var(--el-bg-color, #23232a);
   border: 1px solid var(--el-border-color, #333a44);
@@ -386,6 +400,7 @@ async function onTaskDetailSaved() {
   padding: 6px 0;
   color: var(--el-text-color-primary, #fff);
   overflow: visible; /* 关键：允许子菜单溢出 */
+  pointer-events: auto;
 }
 .context-menu-item {
   padding: 10px 24px;
