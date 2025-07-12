@@ -2,8 +2,8 @@
   <el-dialog
     :model-value="modelValue"
     @update:model-value="val => $emit('update:modelValue', val)"
-    width="520px"
-    top="8vh"
+    width="580px"
+    top="5vh"
     :show-close="false"
     class="project-detail-dialog"
     :close-on-click-modal="true"
@@ -36,98 +36,148 @@
         </div>
       </div>
 
-      <!-- 2. 项目信息行 -->
-      <div class="project-info-row edit-row">
-        <el-avatar
-          class="project-avatar"
-          :src="''"
-          :icon="null"
-        >
-          <span v-if="props.project?.icon" v-html="getIconSVG(props.project.icon)" style="width:24px;height:24px;"></span>
-          <el-icon v-else :size="20">
-            <Folder />
-          </el-icon>
-        </el-avatar>
-        <el-input
-          v-model="editableProjectName"
-          class="project-name-input"
-          :class="{ 'is-focus': isEditingName }"
-          :readonly="!isEditingName"
-          @focus="isEditingName = true"
-          @blur="onNameBlur"
-          @click="isEditingName = true"
-          placeholder="未命名项目"
-        />
-        <el-select v-model="projectType" class="project-type-select" size="small">
-          <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
-        </el-select>
+      <!-- 2. 项目信息卡片 -->
+      <div class="project-info-card">
+        <div class="project-info-content">
+          <div class="project-avatar-wrapper">
+            <el-avatar
+              class="project-avatar"
+              :src="''"
+              :icon="null"
+            >
+              <span v-if="props.project?.icon" v-html="getIconSVG(props.project.icon)" style="width:24px;height:24px;"></span>
+              <el-icon v-else :size="20">
+                <Folder />
+              </el-icon>
+            </el-avatar>
+          </div>
+          <div class="project-details">
+            <el-input
+              v-model="editableProjectName"
+              class="project-name-input"
+              :class="{ 'is-focus': isEditingName }"
+              :readonly="!isEditingName"
+              @focus="isEditingName = true"
+              @blur="onNameBlur"
+              @click="isEditingName = true"
+              placeholder="未命名项目"
+            />
+            <el-select v-model="projectType" class="project-type-select" size="small">
+              <el-option v-for="type in projectTypes" :key="type.value" :label="type.label" :value="type.value" />
+            </el-select>
+          </div>
+        </div>
       </div>
 
-      <!-- 3. 四个统计卡片 -->
-      <div class="project-stats-row stats-grid">
-        <el-card class="stat-card" shadow="hover" @click="showSetDateDialog = true" style="cursor:pointer;">
-          <div class="stat-main">
-            <el-icon class="stat-icon"><Clock /></el-icon>
-            {{ formatDaysLeft() }}
-          </div>
-          <div class="stat-deadline">{{ formatDeadlineDate() }} 截止</div>
-          <el-progress :percentage="Number(deadlineProgress)" :show-text="false" class="stat-progress" />
-        </el-card>
-        <el-card class="stat-card progress-card" shadow="hover">
-          <div class="progress-card-content">
-            <el-progress type="circle" :percentage="progressPercent" :show-text="false" :stroke-width="5" :width="45"  status="success" class="progress-circle" />
-            <div class="progress-info">
-              <div class="progress-percent">{{ progressPercent }}<span class="progress-percent-sign">%</span></div>
-              <div class="progress-label">目标进度</div>
+      <!-- 3. 统计卡片网格 -->
+      <div class="stats-section">
+        <div class="stats-grid">
+          <!-- 截止时间卡片 -->
+          <div class="stat-card deadline-card" @click="showSetDateDialog = true">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-left">
+                <el-icon class="stat-icon"><Clock /></el-icon>
+              </div>
+              <div class="card-right">
+                <div class="stat-info">
+                  <div class="stat-main">{{ formatDaysLeft() }}</div>
+                  <div class="stat-sub">{{ formatDeadlineDate() }} 截止</div>
+                </div>
+                <el-progress :percentage="Number(deadlineProgress)" :show-text="false" class="stat-progress" />
+              </div>
             </div>
           </div>
-        </el-card>
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-main">
-            <el-icon class="stat-icon"><Flag /></el-icon>
-            {{ finishedCount }}
+
+          <!-- 进度卡片 -->
+          <div class="stat-card progress-card">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-left">
+                <el-progress type="circle" :percentage="progressPercent" :show-text="false" :stroke-width="6" :width="50" status="success" class="progress-circle" />
+              </div>
+              <div class="card-right">
+                <div class="progress-info">
+                  <div class="progress-percent">{{ progressPercent }}<span class="progress-percent-sign">%</span></div>
+                  <div class="progress-label">目标进度</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="stat-sub">已完成次数</div>
-        </el-card>
-        <!-- 目标计时卡片部分 -->
-        <el-card class="stat-card" shadow="hover">
-          <div class="stat-main">
-            <el-icon class="stat-icon"><Timer /></el-icon>
-            {{ formatTotalTime(totalProjectDuration) }}
+
+          <!-- 完成次数卡片 -->
+          <div class="stat-card completed-card">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-left">
+                <el-icon class="stat-icon"><Flag /></el-icon>
+              </div>
+              <div class="card-right">
+                <div class="stat-info">
+                  <div class="stat-main">{{ finishedCount }}</div>
+                  <div class="stat-sub">已完成次数</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="stat-sub">目标计时</div>
-          <el-progress :percentage="0" :show-text="false" class="stat-progress" style="visibility:hidden;" />
-        </el-card>
+
+          <!-- 计时卡片 -->
+          <div class="stat-card timer-card">
+            <div class="card-background"></div>
+            <div class="card-content">
+              <div class="card-left">
+                <el-icon class="stat-icon"><Timer /></el-icon>
+              </div>
+              <div class="card-right">
+                <div class="stat-info">
+                  <div class="stat-main">{{ formatTotalTime(totalProjectDuration) }}</div>
+                  <div class="stat-sub">目标计时</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 4. 任务列表区域（可滚动） -->
-      <div class="task-list-container">
-        <div class="task-list-section">
-          <div class="task-list-header">
-            <div class="task-list-title">任务列表</div>
-            <el-button type="primary" size="small" @click="handleCreateTask">
-              <el-icon><Plus /></el-icon>
-              创建任务
-            </el-button>
+      <!-- 4. 任务列表区域 -->
+      <div class="task-list-section">
+        <div class="task-list-header">
+          <div class="task-list-title">
+            <span class="title-icon">📋</span>
+            任务列表
           </div>
-          <!-- 复用TaskPage组件，但只显示当前项目的任务 -->
-          <div class="project-task-page">
-            <div v-if="projectUnfinishedTasks.length === 0 && projectFinishedTasks.length === 0" class="empty-state">暂无任务</div>
-            <template v-else>
-              <div v-if="projectUnfinishedTasks.length > 0">
-                <div class="task-group-title">未完成任务</div>
-                <TaskList :tasks="projectUnfinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
-                  <template #empty></template>
-                </TaskList>
-              </div>
-              <div v-if="projectFinishedTasks.length > 0">
-                <div class="task-group-title">已完成任务</div>
-                <TaskList :tasks="projectFinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
-                  <template #empty></template>
-                </TaskList>
-              </div>
-            </template>
+          <el-button type="primary" size="small" class="create-task-btn" @click="handleCreateTask">
+            <el-icon><Plus /></el-icon>
+            创建任务
+          </el-button>
+        </div>
+        
+        <div class="task-list-content">
+          <div v-if="projectUnfinishedTasks.length === 0 && projectFinishedTasks.length === 0" class="empty-state">
+            <div class="empty-icon">📝</div>
+            <div class="empty-text">暂无任务</div>
+            <div class="empty-hint">点击上方按钮创建第一个任务</div>
           </div>
+          <template v-else>
+            <div v-if="projectUnfinishedTasks.length > 0" class="task-group">
+              <div class="task-group-title">
+                <span class="group-icon">⏳</span>
+                未完成任务
+              </div>
+              <TaskList :tasks="projectUnfinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+                <template #empty></template>
+              </TaskList>
+            </div>
+            <div v-if="projectFinishedTasks.length > 0" class="task-group">
+              <div class="task-group-title">
+                <span class="group-icon">✅</span>
+                已完成任务
+              </div>
+              <TaskList :tasks="projectFinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+                <template #empty></template>
+              </TaskList>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -483,11 +533,38 @@ function formatTotalTime(sec: number) {
   max-height: 92vh;
   
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   :deep(.el-dialog__body) { 
     padding: 0; 
+  }
+  
+  // 暗色主题适配
+  html.dark & {
+    :deep(.el-dialog) {
+      background: rgba(32, 33, 36, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+  
+  // 响应式设计
+  @media (max-width: 768px) {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 2.5vh auto !important;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    :deep(.el-dialog) {
+      width: 98% !important;
+      margin: 1vh auto !important;
+    }
   }
 }
 
@@ -497,177 +574,569 @@ function formatTotalTime(sec: number) {
   padding: 0;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  
+  // 暗色主题适配
+  html.dark & {
+    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  }
 }
 
 .dialog-header {
   display: flex; align-items: center; justify-content: flex-start;
-  padding: 16px 20px 8px 20px;
+  padding: 20px 24px 16px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
   .back-btn { 
     font-size: 20px; 
-    padding: 8px;
+    padding: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      transform: translateX(-2px);
+    }
   }
+  
   .header-actions {
     margin-left: auto;
     .more-btn {
       font-size: 18px;
-      padding: 8px;
-      color: var(--el-text-color-regular);
+      padding: 10px;
+      color: rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      
       &:hover {
-        color: var(--el-color-primary);
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: scale(1.1);
       }
     }
   }
 }
 
-.project-info-row {
-  display: flex; align-items: center; margin: 16px 20px 20px 20px;
-  .project-avatar { 
-    margin-right: 16px; 
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-  }
-  .project-title { flex: 1; }
-  .project-name { 
-    font-size: 24px; 
-    font-weight: 600; 
-    line-height: 1.2;
-  }
-  .project-type-wrapper { margin-left: 16px; }
-  .project-type-select {
-    width: 100px !important;
-    min-width: 80px !important;
-  }
-  .project-date-btn-wrapper {
-    margin-left: 16px;
-    display: flex;
-    align-items: center;
+.project-info-card {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin: 20px 24px 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   }
 }
 
-.project-stats-row {
+.project-info-content {
   display: flex;
-  gap: 16px;
-  margin: 24px 20px 24px 20px;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
 }
+
+.project-avatar-wrapper {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.project-avatar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.project-details {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  max-width: 480px;
+}
+
+.project-name-input {
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  font-size: 22px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+  padding: 0 8px;
+}
+.project-name-input .el-input__wrapper {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.project-name-input .el-input__inner {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 20px;
+  font-weight: 600;
+  padding: 0;
+  color: white !important;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+  }
+}
+
+.project-name-input.is-focus .el-input__wrapper,
+.project-name-input:focus-within .el-input__wrapper {
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.project-type-select {
+  width: 120px !important;
+  min-width: 100px !important;
+  
+  :deep(.el-input__wrapper) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.15) !important;
+      border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    &.is-focus {
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-color: rgba(255, 255, 255, 0.5) !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2) !important;
+    }
+  }
+  
+  :deep(.el-input__inner) {
+    color: white !important;
+    font-weight: 500 !important;
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.6) !important;
+    }
+  }
+  
+  :deep(.el-select__caret) {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+}
+
+.stats-section {
+  margin: 8px 24px 24px 24px;
+  padding: 0;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 16px;
-  margin: 24px 20px 24px 20px;
+  
+  // 添加卡片进入动画
+  .stat-card {
+    animation: slideInUp 0.6s ease-out;
+    
+    &:nth-child(1) { animation-delay: 0.1s; }
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
+    &:nth-child(4) { animation-delay: 0.4s; }
+  }
+  
+  // 响应式设计
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 12px;
+  }
 }
-:deep(.stat-card),
-:deep(.progress-card) {
-  border-radius: 14px !important;
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  border-radius: 20px !important;
   min-width: 0 !important;
-  min-height: 48px !important;
-  height: 64px !important;
+  min-height: 90px !important;
+  height: 110px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
-  background: #23232a !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   color: #fff !important;
-  box-shadow: 0 2px 8px 0 #00000022 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
   cursor: pointer !important;
-  padding: 10px 12px 8px 12px !important;
+  padding: 20px !important;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2) !important;
+    background: rgba(255, 255, 255, 0.25) !important;
+  }
+  
+  &:active {
+    transform: translateY(-2px) scale(1.01);
+    transition: all 0.1s ease;
+  }
+  
+  &.deadline-card {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 107, 107, 0.1)) !important;
+    border-color: rgba(255, 107, 107, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(255, 107, 107, 0.2)) !important;
+      border-color: rgba(255, 107, 107, 0.5);
+    }
+  }
+  
+  &.progress-card {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1)) !important;
+    border-color: rgba(76, 175, 80, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.2)) !important;
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+  }
+  
+  &.completed-card {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1)) !important;
+    border-color: rgba(33, 150, 243, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.2)) !important;
+      border-color: rgba(33, 150, 243, 0.5);
+    }
+  }
+  
+  &.timer-card {
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(156, 39, 176, 0.1)) !important;
+    border-color: rgba(156, 39, 176, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(156, 39, 176, 0.2)) !important;
+      border-color: rgba(156, 39, 176, 0.5);
+    }
+  }
 }
-:deep(.stat-card .el-card__body),
-:deep(.progress-card .el-card__body) {
+
+.stat-card .el-card__body {
   padding: 0 !important;
   min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
 }
-.stat-main {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.stat-sub, .stat-deadline {
-  font-size: 12px;
-  color: #b0b0b8;
-  margin-bottom: 2px;
-  font-weight: 400;
-}
-.stat-icon {
-  font-size: 16px;
-  margin-right: 4px;
-  color: #6c6cff;
-}
-.stat-progress {
+
+.card-background {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  margin-top: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 14px;
+  opacity: 0.1;
+  z-index: -1;
+  filter: blur(5px);
 }
 
-.task-list-container {
+.card-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  height: 100%;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-icon {
+  font-size: 24px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.stat-main {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.3;
+}
+
+.stat-progress {
+  width: 100%;
+  margin-top: 8px;
+  
+  :deep(.el-progress-bar__outer) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px !important;
+    height: 6px !important;
+  }
+  
+  :deep(.el-progress-bar__inner) {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6)) !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease !important;
+  }
+}
+
+.progress-circle {
+  flex-shrink: 0;
+  margin: 0;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.progress-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.progress-percent {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-percent-sign {
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+.progress-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.3;
+}
+
+.task-list-section {
   flex: 1;
   overflow-y: auto;
-  margin: 0 20px;
+  margin: 0 24px 24px 24px;
   min-height: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .task-list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .task-list-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--el-color-primary);
-}
-
-.project-task-page {
-  width: 100%;
-  padding: 8px 0;
-  .empty-state {
-    text-align: center;
-    padding: 20px;
-    color: #7f8c8d;
-    font-size: 13px;
-  }
-}
-.task-group-title {
-  font-size: 15px;
-  font-weight: bold;
-  margin: 18px 0 8px 0;
-  color: #6cb4ff;
-}
-
-.project-date-btn {
+  color: white;
   display: flex;
   align-items: center;
-  font-size: 15px;
-  color: #888;
-  background: none;
-  border: none;
-  padding: 0 8px;
-  height: 32px;
-  transition: color 0.2s;
-  .el-icon {
-    margin-right: 4px;
-    font-size: 20px;
-  }
-  &.active {
-    color: #2563eb;
-    .el-icon {
-      color: #2563eb;
-    }
-  }
+  gap: 10px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.title-icon {
+  font-size: 22px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.create-task-btn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  
   &:hover {
-    color: #2563eb;
-    .el-icon {
-      color: #2563eb;
-    }
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
   }
+}
+
+.task-list-content {
+  width: 100%;
+  padding: 8px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  margin: 20px 0;
+}
+
+.empty-icon {
+  font-size: 48px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  opacity: 0.8;
+}
+
+.empty-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.empty-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.task-group {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.task-group-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.group-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 :deep(.el-date-editor .el-input__inner) {
@@ -726,54 +1195,6 @@ function formatTotalTime(sec: number) {
   border: 1px solid #2563eb !important;
   background: #fff !important;
   box-shadow: 0 0 0 2px #2563eb22 !important;
-}
-
-.progress-card {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 48px !important;
-  padding: 8px 10px 8px 10px !important;
-  background: #23232a !important;
-  border-radius: 14px !important;
-}
-.progress-card-content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  height: 100%;
-  width: 100%;
-}
-.progress-circle {
-  flex-shrink: 0;
-  margin: 0;
-}
-.progress-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  min-width: 0;
-}
-.progress-percent {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.1;
-  margin-bottom: 2px;
-}
-.progress-percent-sign {
-  font-size: 13px;
-  font-weight: 400;
-  margin-left: 1px;
-}
-.progress-label {
-  font-size: 13px;
-  color: #b0b0b8;
-  margin-top: 0;
-  font-weight: 400;
 }
 
 .section-title-row {
