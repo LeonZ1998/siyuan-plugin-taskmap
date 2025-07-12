@@ -4,14 +4,14 @@
     color="#347cff"
     :icon="TimerIcon"
     class="focus-history-card"
+    @click="onClick"
   >
     <div class="focus-card-row">
       <div class="focus-card-main">
         <div class="focus-task">{{ taskName }}</div>
-        <div v-for="record in records" :key="record.id" class="focus-record-row" @click="onClick(record)">
-          <div class="focus-time-range">{{ timeRange(record) }}</div>
-          <div class="focus-duration">{{ duration(record) }}</div>
-          <div class="focus-note" v-if="record.note">{{ record.note }}</div>
+        <div class="focus-summary">
+          <span class="focus-total-duration">{{ totalDuration }}</span>
+          <span class="focus-record-count">{{ records.length }} 次专注</span>
         </div>
       </div>
     </div>
@@ -23,27 +23,24 @@ import { computed } from 'vue';
 const TimerIcon = Timer;
 const props = defineProps<{ records: any[], taskName: string }>();
 const emit = defineEmits(['show-detail']);
-function timeRange(record: any) {
-  const s = new Date(record.startTime);
-  const e = new Date(record.endTime);
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const sameDay = s.toDateString() === e.toDateString();
-  if (sameDay) {
-    return `${pad(s.getHours())}:${pad(s.getMinutes())} - ${pad(e.getHours())}:${pad(e.getMinutes())}`;
-  } else {
-    return `${s.getMonth() + 1}/${s.getDate()} ${pad(s.getHours())}:${pad(s.getMinutes())} - ${e.getMonth() + 1}/${e.getDate()} ${pad(e.getHours())}:${pad(e.getMinutes())}`;
-  }
-}
-function duration(record: any) {
-  const sec = record.duration || 0;
-  if (sec < 60) return `${sec}s`;
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  if (s === 0) return `${m}m`;
-  return `${m}m${s}s`;
-}
-function onClick(record: any) {
-  emit('show-detail', record);
+
+// 计算总时长
+const totalDuration = computed(() => {
+  const totalSeconds = props.records.reduce((sum, record) => sum + (record.duration || 0), 0);
+  const m = Math.floor(totalSeconds / 60);
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  if (h > 0) return `${h}h${mm}m`;
+  return `${m}m`;
+});
+
+function onClick() {
+  // 传递所有记录到详情页面
+  emit('show-detail', {
+    taskName: props.taskName,
+    records: props.records,
+    totalDuration: totalDuration.value
+  });
 }
 </script>
 <style scoped>
@@ -67,29 +64,19 @@ function onClick(record: any) {
   margin-top: 2px;
   margin-bottom: 6px;
 }
-.focus-record-row {
-  margin-bottom: 6px;
-  padding: 6px 0;
-  border-bottom: 1px dashed #2d3a4a22;
+.focus-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
 }
-.focus-record-row:last-child {
-  border-bottom: none;
-}
-.focus-note {
-  font-size: 13px;
-  color: #aaa;
-  margin-top: 2px;
-  white-space: pre-line;
-}
-.focus-time-range {
-  font-size: 13px;
-  color: #aaa;
-}
-.focus-duration {
+.focus-total-duration {
   font-size: 15px;
   color: #fff;
   font-weight: 600;
-  margin-left: 8px;
-  display: inline-block;
+}
+.focus-record-count {
+  font-size: 13px;
+  color: #aaa;
 }
 </style> 

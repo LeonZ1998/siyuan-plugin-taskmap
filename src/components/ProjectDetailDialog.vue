@@ -38,23 +38,16 @@
 
       <!-- 2. 项目信息行 -->
       <div class="project-info-row edit-row">
-        <el-popover
-          placement="bottom-start"
-          trigger="click"
-          width="auto"
+        <el-avatar
+          class="project-avatar"
+          :src="''"
+          :icon="null"
         >
-          <template #reference>
-            <el-avatar
-              class="project-avatar icon-avatar"
-              :src="''"
-              :icon="null"
-              @click.stop="showIconPicker = true"
-            >
-              <span v-html="getIconSVG(currentIcon)"></span>
-            </el-avatar>
-          </template>
-          <IconPicker v-model="currentIcon" />
-        </el-popover>
+          <span v-if="props.project?.icon" v-html="getIconSVG(props.project.icon)" style="width:24px;height:24px;"></span>
+          <el-icon v-else :size="20">
+            <Folder />
+          </el-icon>
+        </el-avatar>
         <el-input
           v-model="editableProjectName"
           class="project-name-input"
@@ -134,7 +127,6 @@ import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, E
 import { ProjectType, ProjectStatus } from '@/types/project.d'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
-import IconPicker from './IconPicker.vue'
 import { getIconSVG } from '@/icons/icons'
 import { ICON_IDS } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
@@ -331,20 +323,6 @@ const deadlineProgress = computed(() => {
   if (percent < 0) percent = 0
   if (percent > 100) percent = 100
   return Math.round(percent)
-})
-
-const showIconPicker = ref(false)
-const currentIcon = ref(props.project?.icon || Object.values(ICON_IDS)[0])
-
-watch(() => props.project?.icon, (val) => {
-  if (val) currentIcon.value = val
-})
-
-watch(currentIcon, (val) => {
-  if (props.project && props.project.id && val !== props.project.icon) {
-    props.project.icon = val
-    projectDB.update(props.project.id, { icon: val })
-  }
 })
 
 const showTaskPanel = ref(false)
@@ -801,15 +779,6 @@ const completedTasks = computed(() => (props.allTasks as any[]).filter(t => Stri
   border: 1px solid #2563eb !important;
   background: #fff !important;
   box-shadow: 0 0 0 2px #2563eb22 !important;
-}
-
-.icon-avatar {
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: border 0.2s;
-}
-.icon-avatar:hover {
-  border: 2px solid #409EFF;
 }
 
 .progress-card {

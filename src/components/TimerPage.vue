@@ -45,9 +45,7 @@
         <FocusHistoryPage ref="focusHistoryRef" />
       </div>
     </div>
-    <el-dialog v-model="showAddFocusDialog" title="添加专注记录" width="420px">
-      <FocusHistoryPage v-if="showAddFocusDialog" />
-    </el-dialog>
+    <AddFocusRecordDialog v-model="showAddFocusDialog" @record-added="handleRecordAdded" />
   </div>
 </template>
 
@@ -56,7 +54,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { taskDB, timerRecordDB } from '@/utils/dbManager';
 import FocusHistoryPage from './FocusHistoryPage.vue';
+import AddFocusRecordDialog from './AddFocusRecordDialog.vue';
 import { ref as vueRef } from 'vue';
+import { eventBus } from '@/utils/eventBus'
 const focusHistoryRef = vueRef();
 
 const elapsedSeconds = ref(0);
@@ -219,6 +219,13 @@ async function endTimer() {
 
 const showAddFocusDialog = ref(false);
 
+function handleRecordAdded(record: any) {
+  // 刷新专注历史记录
+  if (focusHistoryRef.value && focusHistoryRef.value.loadRecords) {
+    focusHistoryRef.value.loadRecords();
+  }
+}
+
 onMounted(() => {
   loadTasks();
   restoreTimerState();
@@ -231,6 +238,14 @@ onMounted(() => {
       saveTimerState();
     }, 1000);
   }
+  eventBus.on && eventBus.on('start-task-timer', (taskId: string) => {
+    if (selectedTaskId.value !== taskId) {
+      selectedTaskId.value = taskId
+    }
+    if (!isRunning.value) {
+      startTimer()
+    }
+  })
 });
 
 onUnmounted(() => {
@@ -248,7 +263,7 @@ onUnmounted(() => {
 .header-row {
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: space-between;
   margin-bottom: 4px;
 }
 .add-focus-btn {

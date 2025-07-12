@@ -54,7 +54,7 @@
           </div>
         </div>
       </div>
-      <div class="context-menu-item">开始计时</div>
+      <div class="context-menu-item" @click.stop="onStartTimer">开始计时</div>
       <div class="context-menu-item" @click.stop="onDeleteTask" style="color:#f56c6c;">删除任务</div>
     </div>
     <TaskDetailPanel
@@ -83,6 +83,7 @@ import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { eventBus } from '@/utils/eventBus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 /**
  * 任务卡片组件
@@ -195,6 +196,24 @@ async function onMoveTo(projectId: string) {
   menuVisible.value = false
   emit('refresh')
   eventBus.emit('global-refresh')
+}
+
+async function onStartTimer() {
+  const state = JSON.parse(localStorage.getItem('taskmap-timer-state') || '{}')
+  if (state.status === 'running') {
+    if (state.selectedTaskId === props.task.id) {
+      await ElMessageBox.alert('该任务已在计时中', '提示', { center: true })
+      menuVisible.value = false
+      return
+    } else {
+      await ElMessageBox.alert('已有其他任务正在计时，请先结束当前计时任务', '提示', { center: true })
+      menuVisible.value = false
+      return
+    }
+  }
+  eventBus.emit('start-task-timer', props.task.id)
+  await ElMessageBox.alert('已开始计时', '提示', { center: true })
+  menuVisible.value = false
 }
 
 async function onDeleteTask() {

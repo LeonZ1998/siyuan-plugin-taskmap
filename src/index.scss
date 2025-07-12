@@ -38,3 +38,64 @@
   --el-color-primary-light-9: #4285f4;
   --el-color-primary-dark-2: #3367d6;
 }
+
+// 全局按钮悬停样式（排除导航栏按钮）
+.taskmap-sidebar {
+  .el-button:not(.top-icon-btn) {
+    transition: all 0.3s ease;
+    
+    // 默认状态：灰色背景
+    &:not(:hover):not(.is-focus):not(.is-active) {
+      background-color: #f5f5f5 !important;
+      border-color: #e0e0e0 !important;
+      color: #666 !important;
+    }
+    
+    // 悬停状态：高亮背景
+    &:hover {
+      background-color: #4285f4 !important;
+      border-color: #4285f4 !important;
+      color: white !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    }
+    
+    // 主要按钮保持原有样式
+    &.el-button--primary {
+      &:not(:hover):not(.is-focus):not(.is-active) {
+        background-color: #4285f4 !important;
+        border-color: #4285f4 !important;
+        color: white !important;
+      }
+      
+      &:hover {
+        background-color: #3367d6 !important;
+        border-color: #3367d6 !important;
+        color: white !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+      }
+    }
+  }
+  
+  // 暗色主题下的按钮样式调整（排除导航栏按钮）
+  &[data-theme="dark"] {
+    .el-button:not(.top-icon-btn) {
+      // 默认状态：深灰色背景
+      &:not(:hover):not(.is-focus):not(.is-active) {
+        background-color: #3c4043 !important;
+        border-color: #5f6368 !important;
+        color: #e8eaed !important;
+      }
+      
+      // 悬停状态：高亮背景
+      &:hover {
+        background-color: #4285f4 !important;
+        border-color: #4285f4 !important;
+        color: white !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+      }
+    }
+  }
+}
