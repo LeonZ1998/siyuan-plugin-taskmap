@@ -1,19 +1,31 @@
 <template>
   <div class="task-page">
     <div class="page-content">
-      <div v-if="tasks.length === 0" class="empty-state">暂无任务</div>
-      <TaskList v-else :tasks="tasks" :all-projects="allProjects" :show-project-name="true" @refresh="loadTasks">
-        <template #empty></template>
-      </TaskList>
+      <div v-if="unfinishedTasks.length === 0 && finishedTasks.length === 0" class="empty-state">暂无任务</div>
+      <template v-else>
+        <div v-if="unfinishedTasks.length > 0">
+          <div class="task-group-title">任务列表</div>
+          <TaskList :tasks="unfinishedTasks" :all-projects="allProjects" :show-project-name="true" @refresh="loadTasks">
+            <template #empty></template>
+          </TaskList>
+        </div>
+        <div v-if="finishedTasks.length > 0">
+          <div class="task-group-title">已完成任务</div>
+          <TaskList :tasks="finishedTasks" :all-projects="allProjects" :show-project-name="true" @refresh="loadTasks">
+            <template #empty></template>
+          </TaskList>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, onBeforeUnmount } from 'vue'
 import { taskDB, projectDB } from '@/utils/dbManager'
 import TaskList from './TaskList.vue'
 import { buildTaskTree } from '@/utils/example'
+import { eventBus } from '@/utils/eventBus'
 
 // 所有任务（平铺数组）
 const tasks = ref<any[]>([])
@@ -32,23 +44,17 @@ async function loadTasks() {
   })))
 }
 
-onMounted(loadTasks)
+onMounted(() => {
+  loadTasks()
+  eventBus.on('global-refresh', loadTasks)
+})
 
-// 格式化日期
-const formatDate = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffTime = date.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) return '今天'
-  if (diffDays === 1) return '明天'
-  if (diffDays === -1) return '昨天'
-  if (diffDays > 0 && diffDays <= 7) return `${diffDays}天后`
-  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)}天前`
-  
-  return date.toLocaleDateString()
-}
+onBeforeUnmount(() => {
+  eventBus.off('global-refresh', loadTasks)
+})
+
+const unfinishedTasks = computed(() => tasks.value.filter(t => !t.isCompleted))
+const finishedTasks = computed(() => tasks.value.filter(t => t.isCompleted))
 
 const formatShortDate = (timestamp: number) => {
   const date = new Date(timestamp)
@@ -77,5 +83,11 @@ async function onMoveTask({ task, project }) {
     color: #7f8c8d;
     font-size: 13px;
   }
+}
+.task-group-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 18px 0 8px 0;
+  color: #6cb4ff;
 }
 </style> 

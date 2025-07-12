@@ -169,7 +169,7 @@ const handleEnter = async () => {
     // 新建任务
     const taskName = inputText.value.trim() || '未命名任务'
     try {
-      const newTask = await taskDB.create({
+      await taskDB.create({
         name: taskName,
         projectId: null, // 暂时不关联项目
         parentId: null, // 顶级任务
@@ -182,13 +182,17 @@ const handleEnter = async () => {
         order: tasks.value.length
       })
       
-      // 添加到本地任务列表
-      tasks.value.push(newTask)
+      // 重新加载任务列表，确保数据同步
+      await loadTasks()
       
       // 清空输入框
       inputText.value = ''
+      
+      // 触发全局刷新，确保其他页面也能更新
+      eventBus.emit('global-refresh')
     } catch (error) {
       // 新建任务失败
+      console.error('创建任务失败:', error)
     }
   }
 }

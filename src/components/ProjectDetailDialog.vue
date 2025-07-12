@@ -89,29 +89,45 @@
           </div>
           <div class="stat-sub">已完成次数</div>
         </el-card>
+        <!-- 目标计时卡片部分 -->
         <el-card class="stat-card" shadow="hover">
           <div class="stat-main">
             <el-icon class="stat-icon"><Timer /></el-icon>
-            {{ formatTotalTime() }}
+            {{ formatTotalTime(totalProjectDuration) }}
           </div>
           <div class="stat-sub">目标计时</div>
+          <el-progress :percentage="0" :show-text="false" class="stat-progress" style="visibility:hidden;" />
         </el-card>
       </div>
 
       <!-- 4. 任务列表区域（可滚动） -->
       <div class="task-list-container">
         <div class="task-list-section">
-          <div class="section-title-row">
-            <div class="section-title">任务列表</div>
-            <el-button type="primary" round size="small" class="create-task-btn" @click="handleCreateTask">创建任务</el-button>
+          <div class="task-list-header">
+            <div class="task-list-title">任务列表</div>
+            <el-button type="primary" size="small" @click="handleCreateTask">
+              <el-icon><Plus /></el-icon>
+              创建任务
+            </el-button>
           </div>
-          <div v-if="unfinishedTasks.length === 0 && finishedTasks.length === 0" class="empty-state">暂无任务</div>
-          <TaskList v-else :tasks="unfinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
-            <template #empty></template>
-          </TaskList>
-          <TaskList v-if="finishedTasks.length > 0" :tasks="finishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
-            <template #empty></template>
-          </TaskList>
+          <!-- 复用TaskPage组件，但只显示当前项目的任务 -->
+          <div class="project-task-page">
+            <div v-if="projectUnfinishedTasks.length === 0 && projectFinishedTasks.length === 0" class="empty-state">暂无任务</div>
+            <template v-else>
+              <div v-if="projectUnfinishedTasks.length > 0">
+                <div class="task-group-title">未完成任务</div>
+                <TaskList :tasks="projectUnfinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+                  <template #empty></template>
+                </TaskList>
+              </div>
+              <div v-if="projectFinishedTasks.length > 0">
+                <div class="task-group-title">已完成任务</div>
+                <TaskList :tasks="projectFinishedTasks" :all-projects="allProjects" :show-project-name="false" @refresh="loadProjectTasks">
+                  <template #empty></template>
+                </TaskList>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -121,19 +137,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
-import { ArrowLeft, MoreFilled, Folder, Flag, Clock, ArrowRight, Timer, Calendar, Delete } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElCheckbox, ElDatePicker, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox, ElTree } from 'element-plus'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ArrowLeft, MoreFilled, Folder, Flag, Clock, Timer, Delete, Plus } from '@element-plus/icons-vue'
+import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
 import { ProjectType, ProjectStatus } from '@/types/project.d'
-import { taskDB, projectDB } from '@/utils/dbManager'
+import { taskDB, projectDB, timerRecordDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
 import { getIconSVG } from '@/icons/icons'
-import { ICON_IDS } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
-import TaskCard from './TaskCard.vue'
 import 'element-plus/es/components/tree/style/css'
 import TaskList from './TaskList.vue'
-import { buildTaskTree } from '@/utils/example'
+import { eventBus } from '@/utils/eventBus'
 
 const showSetDateDialog = ref(false)
 const selectedDateInfo = ref<any>(null)
@@ -220,20 +234,23 @@ const formatDaysLeft = () => {
   return `${diffDays}天后`
 }
 
-// 格式化总用时
-const formatTotalTime = () => {
-  // 这里可以根据实际数据计算总用时
-  const totalMinutes = 0 // 从任务数据中计算
-  if (totalMinutes === 0) return '0分钟'
-  
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  
-  if (hours > 0) {
-    return `${hours}小时${minutes}分钟`
-  }
-  return `${minutes}分钟`
+// 目标计时：当前项目所有任务计时的总和
+const totalProjectDuration = ref(0)
+
+async function loadProjectTotalDuration() {
+  if (!props.project?.id) return
+  // 获取该项目所有任务ID
+  const taskIds = tasks.value.map(t => t.id)
+  // 查询所有计时记录
+  const allRecords = await timerRecordDB.getAll()
+  // 过滤属于本项目的任务
+  const projectRecords = allRecords.filter(r => taskIds.includes(r.taskId))
+  // 累加 duration
+  totalProjectDuration.value = projectRecords.reduce((sum, r) => sum + (r.duration || 0), 0)
 }
+
+onMounted(loadProjectTotalDuration)
+watch([tasks], loadProjectTotalDuration)
 
 // 复用TaskPage的日期格式化
 const formatDate = (timestamp: number) => {
@@ -351,6 +368,11 @@ async function onUpdateTaskName(task, newName) {
 onMounted(async () => {
   loadProjectTasks()
   allProjects.value = await projectDB.getAll()
+  eventBus.on('global-refresh', loadProjectTasks)
+})
+
+onBeforeUnmount(() => {
+  eventBus.off('global-refresh', loadProjectTasks)
 })
 
 async function handleProjectAction(command: string) {
@@ -436,10 +458,23 @@ function onNodeDrop(draggingNode, dropNode, dropType, ev) {
   // 更新后调用 loadProjectTasks() 刷新
 }
 
-const unfinishedTasks = computed(() => buildTaskTree(tasks.value.filter(t => !t.isCompleted)))
-const finishedTasks = computed(() => buildTaskTree(tasks.value.filter(t => t.isCompleted)))
+const unfinishedTasks = computed(() => tasks.value.filter(t => !t.isCompleted))
+const finishedTasks = computed(() => tasks.value.filter(t => t.isCompleted))
 const totalTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id)).length)
 const completedTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id) && ((t as any).status === 'completed' || (t as any).isCompleted)).length)
+
+// 项目任务的计算属性
+const projectUnfinishedTasks = computed(() => tasks.value.filter(t => !t.isCompleted))
+const projectFinishedTasks = computed(() => tasks.value.filter(t => t.isCompleted))
+
+// 修改 formatTotalTime 用于秒数
+function formatTotalTime(sec: number) {
+  const m = Math.floor(sec / 60)
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  if (h > 0) return `${h}小时${mm}分钟`
+  return `${m}分钟`
+}
 </script>
 
 <style lang="scss" scoped>
@@ -578,121 +613,33 @@ const completedTasks = computed(() => (props.allTasks as any[]).filter(t => Stri
   min-height: 0;
 }
 
-.task-list-section {
-  padding: 0 0 20px 0;
-  .section-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .section-title { 
-    font-size: 16px; 
-    font-weight: 600;
-    color: var(--el-color-primary);
-  }
-  .task-card {
-    display: flex;
-    align-items: center;
-    position: relative;
-    min-height: 40px;
-    padding: 0;
-    background: transparent;
-    transition: background 0.2s;
-    border-radius: 8px;
-    margin-bottom: 4px;
-    
-    &:hover {
-      background: var(--el-fill-color-lighter);
-    }
-    
-    &.is-subtask {
-      padding-left: 32px;
-    }
-    .task-left {
-      display: flex;
-      align-items: center;
-      margin-right: 8px;
-      .task-checkbox {
-        margin: 0 4px 0 8px;
-        flex-shrink: 0;
-      }
-      .expand-btn {
-        width: 20px;
-        height: 20px;
-        padding: 0;
-        margin-left: 2px;
-        transition: transform 0.2s;
-        color: var(--el-text-color-secondary);
-        &.expanded {
-          transform: rotate(90deg);
-        }
-      }
-    }
-    .task-main {
-      display: flex;
-      align-items: center;
-      flex: 1;
-      min-width: 0;
-      justify-content: space-between;
-      height: 40px;
-      position: relative;
-      padding-left: 0;
-    }
-    .task-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-      flex: 1;
-      margin-left: 0;
-    }
-    .task-meta {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-      margin-left: 12px;
-      .project-name {
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 6px;
-        white-space: nowrap;
-        color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
-      }
-      .task-date {
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 6px;
-        white-space: nowrap;
-        color: var(--el-text-color-secondary);
-        background: var(--el-fill-color-lighter);
-      }
-    }
-    .task-divider {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 1px;
-      background: var(--el-border-color-light);
-      content: '';
-      z-index: 1;
-    }
-    &.is-subtask .task-main .task-divider {
-      left: 0;
-    }
-  }
+.task-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.task-list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
+.project-task-page {
+  width: 100%;
+  padding: 8px 0;
   .empty-state {
     text-align: center;
-    padding: 32px 20px;
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
+    padding: 20px;
+    color: #7f8c8d;
+    font-size: 13px;
   }
+}
+.task-group-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 18px 0 8px 0;
+  color: #6cb4ff;
 }
 
 .project-date-btn {

@@ -8,7 +8,7 @@
         v-if="!isEditing"
         class="task-name"
         @dblclick.left="startEdit"
-        @click.left="startEdit"
+        @click.left="openTaskDetail"
         tabindex="0"
       >{{ task.name }}</span>
       <input
@@ -65,6 +65,14 @@
       @update:modelValue="showAddSubTaskPanel = false"
       @task-saved="onSubTaskSaved"
     />
+    <!-- 新增：任务详情编辑弹窗 -->
+    <TaskDetailPanel
+      v-if="showTaskDetailPanel"
+      :model-value="showTaskDetailPanel"
+      :task-id="task.id"
+      @update:modelValue="showTaskDetailPanel = false"
+      @task-saved="onTaskDetailSaved"
+    />
     <div v-if="task.expanded && task.subTasks && task.subTasks.length > 0">
       <TaskCard
         v-for="subTask in task.subTasks"
@@ -103,6 +111,12 @@ const editName = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 
 function startEdit(e: MouseEvent) {
+  // 清除单击定时器
+  if (clickTimer) {
+    clearTimeout(clickTimer)
+    clickTimer = null
+  }
+  
   if (e && e.button !== 0) return
   editName.value = props.task.name
   isEditing.value = true
@@ -222,6 +236,40 @@ async function onDeleteTask() {
   eventBus.emit('global-refresh')
   menuVisible.value = false
 }
+
+const showTaskDetailPanel = ref(false)
+let clickTimer: NodeJS.Timeout | null = null
+
+function openTaskDetail(e: MouseEvent) {
+  console.log('[TaskCard] openTaskDetail called', e)
+  if (isEditing.value) {
+    console.log('[TaskCard] isEditing is true, returning')
+    return
+  }
+  // 只允许左键点击
+  if (e && e.button !== 0) {
+    console.log('[TaskCard] not left click, returning')
+    return
+  }
+  
+  // 清除之前的定时器
+  if (clickTimer) {
+    clearTimeout(clickTimer)
+    clickTimer = null
+    return // 如果之前有定时器，说明是双击，不执行单击操作
+  }
+  
+  // 设置延迟，等待可能的双击事件
+  clickTimer = setTimeout(() => {
+    console.log('[TaskCard] setting showTaskDetailPanel to true')
+    showTaskDetailPanel.value = true
+    clickTimer = null
+  }, 200) // 200ms延迟
+}
+async function onTaskDetailSaved() {
+  showTaskDetailPanel.value = false
+  emit('refresh')
+}
 </script>
 
 <style scoped>
@@ -279,6 +327,7 @@ async function onDeleteTask() {
   min-width: 0;
   flex: 1;
   margin-left: 0;
+  cursor: pointer;
 }
 .task-meta {
   display: flex;

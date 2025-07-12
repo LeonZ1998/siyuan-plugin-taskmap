@@ -1,5 +1,10 @@
 <template>
   <el-dialog :model-value="modelValue" @close="onClose" width="480px" class="task-detail-dialog" append-to-body>
+    <template #header>
+      <div class="dialog-header">
+        <span class="dialog-title">{{ props.taskId ? '编辑任务' : '创建任务' }}</span>
+      </div>
+    </template>
     <el-card class="task-detail-panel" shadow="never">
       <el-form label-position="top" :model="form">
         <el-form-item label="任务名称" label-class="section-label">
@@ -27,7 +32,7 @@
         </el-form-item>
         <el-divider />
         <el-form-item>
-          <el-button type="primary" style="width:100%" @click="onSaveTask">保存任务</el-button>
+          <el-button type="primary" style="width:100%" @click="onSaveTask">{{ props.taskId ? '保存修改' : '保存任务' }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -35,13 +40,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { Calendar, ArrowRight } from '@element-plus/icons-vue'
 import DatePanelContent from './DatePanelContent.vue'
 import { taskDB } from '@/utils/dbManager'
 import { TaskStatus } from '@/types/task.d'
 import { eventBus } from '@/utils/eventBus'
-const props = defineProps<{ modelValue: boolean, projectId?: string, parentId?: string }>()
+const props = defineProps<{ modelValue: boolean, projectId?: string, parentId?: string, taskId?: string }>()
 const emit = defineEmits(['update:modelValue', 'task-saved'])
 const form = ref({ name: '', note: '', quantify: false })
 const showDatePanel = ref(false)
@@ -53,6 +58,40 @@ const datePanelValue = ref({
   rangeStart: new Date(),
   rangeEnd: new Date()
 })
+
+// 加载任务详情（编辑模式）
+async function loadTaskDetail() {
+  if (props.taskId) {
+    const task = await taskDB.get(props.taskId)
+    if (task) {
+      form.value.name = task.name || ''
+      form.value.note = task.notes || ''
+      // 日期
+      if (task.startDate && task.endDate) {
+        datePanelValue.value.mode = 'range'
+        datePanelValue.value.rangeStart = new Date(task.startDate)
+        datePanelValue.value.rangeEnd = new Date(task.endDate)
+      } else if (task.dueDate) {
+        datePanelValue.value.mode = 'single'
+        datePanelValue.value.singleDate = new Date(task.dueDate)
+      }
+    }
+  } else {
+    // 新建时重置
+    form.value.name = ''
+    form.value.note = ''
+    datePanelValue.value.mode = 'single'
+    datePanelValue.value.singleDate = new Date()
+  }
+}
+
+watch(() => props.modelValue, (val) => {
+  if (val) loadTaskDetail()
+})
+onMounted(() => {
+  if (props.modelValue) loadTaskDetail()
+})
+
 function onClose() {
   emit('update:modelValue', false)
 }
@@ -84,21 +123,33 @@ async function onSaveTask() {
       }
     }
   }
-  // 新建任务
-  await taskDB.create({
-    name,
-    notes,
-    projectId: props.projectId,
-    parentId: props.parentId,
-    startDate,
-    endDate,
-    dueDate,
-    status: TaskStatus.PENDING,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    isArchived: false,
-    order: 0
-  })
+  if (props.taskId) {
+    // 编辑任务
+    await taskDB.update(props.taskId, {
+      name,
+      notes,
+      startDate,
+      endDate,
+      dueDate,
+      updatedAt: Date.now()
+    })
+  } else {
+    // 新建任务
+    await taskDB.create({
+      name,
+      notes,
+      projectId: props.projectId,
+      parentId: props.parentId,
+      startDate,
+      endDate,
+      dueDate,
+      status: TaskStatus.PENDING,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isArchived: false,
+      order: 0
+    })
+  }
   emit('update:modelValue', false)
   emit('task-saved')
   eventBus.emit('global-refresh')
@@ -108,6 +159,16 @@ async function onSaveTask() {
 <style scoped>
 .task-detail-dialog :deep(.el-dialog__body) {
   padding: 0 0 8px 0;
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 .task-detail-panel {
   background: #23232a;

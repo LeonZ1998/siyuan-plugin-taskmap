@@ -93,6 +93,10 @@ function saveTimerState() {
   localStorage.setItem(TIMER_STATE_KEY, JSON.stringify(state));
 }
 
+function clearTimerState() {
+  localStorage.removeItem(TIMER_STATE_KEY);
+}
+
 function restoreTimerState() {
   const state = JSON.parse(localStorage.getItem(TIMER_STATE_KEY) || '{}');
   if (state.selectedTaskId) selectedTaskId.value = state.selectedTaskId;
@@ -183,7 +187,7 @@ function resetTimer() {
   elapsedSeconds.value = 0;
   isPaused.value = false;
   startTime.value = null;
-  saveTimerState();
+  clearTimerState();
 }
 
 function stopTimer() {
@@ -193,7 +197,7 @@ function stopTimer() {
     clearInterval(timerId);
     timerId = null;
   }
-  saveTimerState();
+  clearTimerState();
 }
 
 async function endTimer() {
@@ -249,7 +253,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // stopTimer(); // 不要在卸载时重置状态
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
   saveTimerState(); // 只保存当前状态
 });
 </script>
