@@ -1,5 +1,5 @@
 <template>
-  <div class="task-card" :class="{ 'is-subtask': !!task.parentId, 'is-completed': task.isCompleted }" @contextmenu.prevent="showMenu($event)">
+  <div class="task-card" :class="{ 'is-subtask': !!task.parentId, 'is-completed': task.isCompleted }">
     <div class="task-left">
       <el-checkbox class="task-checkbox" :model-value="task.isCompleted" @change="onCheckTask" />
     </div>
@@ -156,9 +156,15 @@ function onClickOutside(e: MouseEvent) {
 }
 onMounted(() => {
   document.addEventListener('mousedown', onClickOutside)
-})
+  eventBus.on('show-task-menu', ({ event, taskId }) => {
+    if (taskId === props.task.id) {
+      showMenu(event);
+    }
+  });
+});
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', onClickOutside)
+  eventBus.off('show-task-menu');
 })
 
 const showAddSubTaskPanel = ref(false)

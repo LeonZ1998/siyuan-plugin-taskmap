@@ -10,6 +10,7 @@
       :expand-on-click-node="false"
       @node-drop="onNodeDrop"
       :empty-text="''"
+      @node-contextmenu="onNodeContextMenu"
     >
       <template #default="{ data }">
         <TaskCard
@@ -29,6 +30,7 @@
 <script setup lang="ts">
 import TaskCard from './TaskCard.vue'
 import { ElTree } from 'element-plus'
+import { eventBus } from '@/utils/eventBus'
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
   showProjectName: { type: Boolean, default: true },
@@ -38,6 +40,10 @@ const props = defineProps({
 const treeProps = { children: 'subTasks', label: 'name' }
 function onNodeDrop(...args: any[]) {
   // 透传事件，父组件可监听
+}
+function onNodeContextMenu(event, data, node, comp) {
+  event.preventDefault();
+  eventBus.emit('show-task-menu', { event, taskId: data.id });
 }
 </script>
 
