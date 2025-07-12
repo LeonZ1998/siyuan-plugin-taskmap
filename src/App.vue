@@ -1,156 +1,127 @@
 <template>
-  <div class="taskmap-sidebar" :data-theme="currentTheme">
-    <el-container class="sidebar-container">
-      <!-- 上部分：四个图标横向排列 -->
-      <el-header class="sidebar-header">
-        <div class="icon-row">
-          <el-button
-            v-for="(icon, index) in topIcons"
-            :key="index"
-            :icon="icon.icon"
-            circle
-            size="large"
-            :class="['top-icon-btn', { 'active': currentPage === icon.action }]"
-            @click="handleIconClick(icon.action)"
-          />
+  <div class="taskmap-app">
+    <div class="main-panel">
+      <nav class="main-nav">
+        <div
+          v-for="(icon, idx) in topIcons"
+          :key="idx"
+          :class="['nav-item', { active: currentPage === icon.action }]"
+          @click="handleIconClick(icon.action)"
+        >
+          <component :is="icon.icon" class="nav-icon" />
+          <span class="nav-label">{{ icon.title }}</span>
         </div>
-      </el-header>
-
-      <!-- 中间部分：带图标的输入框 -->
-      <el-main class="sidebar-main">
-        <div class="input-section">
-          <el-input
-            v-model="inputText"
-            :placeholder="inputPlaceholder"
-            class="main-input"
-            clearable
-            @keyup.enter="handleEnter"
-            @clear="handleClear"
+      </nav>
+      <div class="input-bar">
+        <el-input
+          v-model="inputText"
+          :placeholder="inputPlaceholder"
+          class="main-input"
+          clearable
+          @keyup.enter="handleEnter"
+          @clear="handleClear"
+        >
+          <template #prefix>
+            <el-icon class="input-icon">
+              <Plus v-if="currentPage === 'project'" />
+              <Edit v-else-if="currentPage === 'task'" />
+              <Timer v-else-if="currentPage === 'timer'" />
+              <Calendar v-else-if="currentPage === 'habit'" />
+            </el-icon>
+          </template>
+        </el-input>
+      </div>
+      <div class="main-content">
+        <div v-if="currentPage === 'project'">
+          <ProjectPage 
+            v-for="project in projects"
+            :key="project.id + '-' + allTasks.length"
+            :project="project"
+            :all-tasks="allTasks"
+            :theme="currentTheme"
+            @click="handleProjectCardClick(project)"
           />
-        </div>
-      </el-main>
-
-      <!-- 下部分：动态页面内容 -->
-      <el-footer class="sidebar-footer">
-        <div class="footer-content">
-          <!-- 根据当前页面显示不同内容 -->
-          <div v-if="currentPage === 'project'" class="project-list">
-            <ProjectPage 
-              v-for="project in projects"
-              :key="project.id + '-' + allTasks.length"
-              :project="project"
-              :all-tasks="allTasks"
-              :theme="currentTheme"
-              @click="handleProjectCardClick(project)"
-            />
-            <!-- 隐藏的 TaskList 用于监听任务的 @refresh 事件，驱动统计刷新 -->
-            <TaskList
-              v-if="projects.length > 0"
-              :tasks="tasks"
-              :all-projects="projects"
-              style="display: none"
-              @refresh="handleRefresh"
-            />
-            <div v-if="projects.length === 0" class="empty-state">
-              <p>暂无项目，请输入项目名称创建新项目</p>
-            </div>
+          <TaskList
+            v-if="projects.length > 0"
+            :tasks="tasks"
+            :all-projects="projects"
+            style="display: none"
+            @refresh="handleRefresh"
+          />
+          <div v-if="projects.length === 0" class="empty-state">
+            <p>暂无项目，请输入项目名称创建新项目</p>
           </div>
-          
-          <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" :all-projects="projects" @refresh="handleRefresh" />
-          <TimerPage v-else-if="currentPage === 'timer'" />
-          <HabitPage v-else-if="currentPage === 'habit'" />
         </div>
-      </el-footer>
-    </el-container>
-    <ProjectDetailDialog
-      v-model="showProjectDialog"
-      :project="selectedProject"
-      @close="handleProjectDialogClose"
-      @create-task="handleCreateTask"
-      @project-deleted="handleProjectDeleted"
-      @project-task-changed="loadProjects"
-    />
+        <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" :all-projects="projects" @refresh="handleRefresh" />
+        <TimerPage v-else-if="currentPage === 'timer'" />
+        <HabitPage v-else-if="currentPage === 'habit'" />
+      </div>
+      <ProjectDetailDialog
+        v-model="showProjectDialog"
+        :project="selectedProject"
+        @close="handleProjectDialogClose"
+        @create-task="handleCreateTask"
+        @project-deleted="handleProjectDeleted"
+        @project-task-changed="loadProjects"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import {
   Document,
   Edit,
   Timer,
-  Calendar
+  Calendar,
+  Plus
 } from '@element-plus/icons-vue'
 import ProjectPage from './components/ProjectPage.vue'
 import TaskPage from './components/TaskPage.vue'
 import TimerPage from './components/TimerPage.vue'
 import ProjectDetailDialog from './components/ProjectDetailDialog.vue'
 import TaskList from './components/TaskList.vue'
-import HabitPage from './components/HabitPage.vue' // 新增习惯打卡与循环任务页面
-// import ThemeToggle from './components/ThemeToggle.vue' // 已移除，现在自动跟随思源主题
+import HabitPage from './components/HabitPage.vue'
 import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
 import { useTheme } from '@/composables/useTheme'
 import { eventBus } from '@/utils/eventBus'
 import { buildTaskTree } from '@/utils/example'
 
-// 使用主题管理 composable
-const { isDark, currentTheme, toggleTheme, setTheme, isSystemDark } = useTheme()
-
-// 响应式数据
+const { currentTheme } = useTheme()
 const inputText = ref('')
-const currentPage = ref('project') // 当前显示的页面
+const currentPage = ref('project')
 const projects = ref([])
-const tasks = ref<any[]>([]) // 任务列表
+const tasks = ref<any[]>([])
 const showProjectDialog = ref(false)
 const selectedProject = ref<any>(null)
 const allTasks = ref([])
 
-// 计算属性
 const inputPlaceholder = computed(() => {
   return currentPage.value === 'project' ? '添加一个新项目...' : '添加一个新任务...'
 })
 
-// 顶部图标配置
 const topIcons = [
-  {
-    icon: Document,
-    action: 'project',
-    title: '项目管理'
-  },
-  {
-    icon: Edit,
-    action: 'task',
-    title: '任务管理'
-  },
-  {
-    icon: Timer,
-    action: 'timer',
-    title: '任务计时'
-  },
-  {
-    icon: Calendar,
-    action: 'habit',
-    title: '习惯打卡/循环任务'
-  }
+  { icon: Document, action: 'project', title: '项目' },
+  { icon: Edit, action: 'task', title: '任务' },
+  { icon: Timer, action: 'timer', title: '计时' },
+  { icon: Calendar, action: 'habit', title: '习惯' }
 ]
 
-// 处理图标点击
 const handleIconClick = (action: string) => {
   currentPage.value = action
 }
 
-// 处理回车输入
 const handleEnter = async () => {
   if (currentPage.value === 'project') {
-    // 新建项目
-    const projectName = inputText.value.trim() || '未命名'
+    const projectName = inputText.value.trim() || '未命名项目'
     try {
       await projectDB.create({
         name: projectName,
-        type: ProjectType.WORK_CAREER, // 默认类型
+        type: ProjectType.WORK_CAREER,
         status: ProjectStatus.ACTIVE,
-        color: '#3498db', // 默认颜色
+        color: '#3498db',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         isArchived: false,
@@ -159,116 +130,68 @@ const handleEnter = async () => {
         completedTaskCount: 0,
         completionRate: 0
       })
-      await loadProjects() // 只信任数据库
+      await loadProjects()
       inputText.value = ''
-    } catch (error) {
-      // 新建项目失败
-    }
+    } catch (error) {}
   } else if (currentPage.value === 'task') {
-    // 新建任务
     const taskName = inputText.value.trim() || '未命名任务'
     try {
       await taskDB.create({
         name: taskName,
-        projectId: null, // 暂时不关联项目
-        parentId: null, // 顶级任务
-        status: 'pending', // 待完成
-        priority: 'medium', // 中等优先级
-        dueDate: null, // 暂不设置截止日期
+        projectId: null,
+        parentId: null,
+        status: 'pending',
+        priority: 'medium',
+        dueDate: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         isCompleted: false,
         order: tasks.value.length
       })
-      
-      // 重新加载任务列表，确保数据同步
       await loadTasks()
-      
-      // 清空输入框
       inputText.value = ''
-      
-      // 触发全局刷新，确保其他页面也能更新
       eventBus.emit('global-refresh')
-    } catch (error) {
-      // 新建任务失败
-      console.error('创建任务失败:', error)
-    }
+    } catch (error) {}
   }
 }
 
-// 加载项目列表
 const loadProjects = async () => {
   try {
     const projectList = await projectDB.getAll()
-    projects.value = projectList.map(p => ({
-      ...p
-    }))
-  } catch (error) {
-    // 加载项目列表失败
-  }
+    projects.value = projectList.map(p => ({ ...p }))
+  } catch (error) {}
 }
 
 const loadTasks = async () => {
   try {
     const taskList = await taskDB.getAll()
     tasks.value = buildTaskTree(taskList)
-    allTasks.value = [...taskList] // 强制新引用，确保响应式
-  } catch (error) {
-    // 加载任务列表失败
-  }
+    allTasks.value = [...taskList]
+  } catch (error) {}
 }
 
-// 处理清空
-const handleClear = () => {
-  // 输入框已清空
-}
-
-// 处理项目卡片点击
+const handleClear = () => {}
 const handleProjectCardClick = (project: any) => {
   selectedProject.value = project
   showProjectDialog.value = true
 }
-
 const handleProjectDialogClose = () => {
   showProjectDialog.value = false
   selectedProject.value = null
 }
-
-const handleCreateTask = () => {
-  // 处理创建任务逻辑
-  // 这里可以跳转到任务页面或打开任务创建对话框
-}
-
+const handleCreateTask = () => {}
 const handleProjectDeleted = async () => {
   showProjectDialog.value = false
   selectedProject.value = null
   await nextTick()
   const projectList = await projectDB.getAll()
-  projects.value = projectList.map(p => ({
-    ...p
-  }))
+  projects.value = projectList.map(p => ({ ...p }))
 }
-
-function getTotalTasks(projectId) {
-  return allTasks.value.filter(t => t.projectId === projectId).length
-}
-function getCompletedTasks(projectId) {
-  return allTasks.value.filter(t => t.projectId === projectId && (t.status === 'completed' || t.isCompleted)).length
-}
-function getDaysLeft(endDate) {
-  if (!endDate) return 0
-  const today = new Date()
-  const end = new Date(endDate)
-  return Math.ceil((end.getTime() - today.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24))
-}
-
 const handleRefresh = async () => {
-  await new Promise(resolve => setTimeout(resolve, 100)); // 等待数据库写入完成
+  await new Promise(resolve => setTimeout(resolve, 100));
   await loadTasks()
   await loadProjects()
 }
-
-// 组件挂载时加载数据
 onMounted(() => {
   eventBus.on('global-refresh', handleRefresh)
   loadProjects()
@@ -280,298 +203,99 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-.taskmap-sidebar {
+.taskmap-app {
   width: 100%;
   height: 100%;
-  transition: all 0.3s ease;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  
-  // 明色主题
-  &[data-theme="light"] {
-    background: #ffffff;
-    color: #202124;
-    
-    .sidebar-header {
-      border-bottom: 1px solid #dadce0;
-      background: #ffffff; // 统一背景色
-      
-      .top-icon-btn {
-        background: #ffffff;
-        border: 1px solid #dadce0;
-        color: #202124;
-        
-        &:hover {
-          background: #4285f4;
-          color: white;
-        }
-        
-        &.active {
-          background: #4285f4;
-          color: white;
-          border-color: #4285f4;
-        }
-      }
-    }
-    
-    .sidebar-main {
-      background: #ffffff; // 统一背景色
-      
-      .main-input {
-        :deep(.el-input__wrapper) {
-          background: #ffffff;
-          border: 1px solid #dadce0;
-          
-          &:hover {
-            border-color: #4285f4;
-          }
-          
-          &.is-focus {
-            border-color: #4285f4;
-            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
-          }
-        }
-        
-        :deep(.el-input__inner) {
-          color: #202124;
-          
-          &::placeholder {
-            color: #5f6368;
-          }
-        }
-        
-        :deep(.el-input__suffix) {
-          color: #5f6368;
-        }
-        
-        :deep(.el-input__clear) {
-          color: #5f6368;
-          
-          &:hover {
-            color: #202124;
-          }
-        }
-      }
-    }
-    
-    .sidebar-footer {
-      border-top: 1px solid #dadce0;
-      background: #ffffff; // 统一背景色
-      
-      .footer-content {
-        color: #5f6368;
-      }
-    }
-  }
-  
-  // 暗色主题
-  &[data-theme="dark"] {
-    background: #202124;
-    color: #e8eaed;
-    
-    .sidebar-header {
-      border-bottom: 1px solid #5f6368;
-      background: #202124; // 统一背景色
-      
-      .top-icon-btn {
-        background: #202124;
-        border: 1px solid #5f6368;
-        color: #e8eaed;
-        
-        &:hover {
-          background: #4285f4;
-          color: white;
-        }
-        
-        &.active {
-          background: #4285f4;
-          color: white;
-          border-color: #4285f4;
-        }
-      }
-    }
-    
-    .sidebar-main {
-      background: #202124; // 统一背景色
-      
-      .main-input {
-        :deep(.el-input__wrapper) {
-          background: #202124;
-          border: 1px solid #5f6368;
-          
-          &:hover {
-            border-color: #4285f4;
-          }
-          
-          &.is-focus {
-            border-color: #4285f4;
-            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-          }
-        }
-        
-        :deep(.el-input__inner) {
-          color: #e8eaed;
-          
-          &::placeholder {
-            color: #9aa0a6;
-          }
-        }
-        
-        :deep(.el-input__suffix) {
-          color: #9aa0a6;
-        }
-        
-        :deep(.el-input__clear) {
-          color: #9aa0a6;
-          
-          &:hover {
-            color: #e8eaed;
-          }
-        }
-      }
-    }
-    
-    .sidebar-footer {
-      border-top: 1px solid #5f6368;
-      background: #202124; // 统一背景色
-      
-      .footer-content {
-        color: #9aa0a6;
-      }
-    }
-  }
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: inherit;
+  color: var(--main-text);
 }
 
-.sidebar-container {
-  height: 100%;
+.main-panel {
+  width: 100%;
+  max-width: 720px;
+  min-width: 320px;
+  margin: 0 auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  background: var(--main-bg);
   display: flex;
   flex-direction: column;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-.sidebar-header {
-  padding: 12px;
-  height: auto !important;
-  min-height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: all 0.3s ease;
-  position: relative;
-
-  .icon-row {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    flex: 1;
-    gap: 6px;
-  }
-
-  .top-icon-btn {
-    flex: 1;
-    max-width: 45px;
-    height: 45px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  }
-}
-
-.sidebar-main {
-  flex: none; // 改为固定高度，不占用剩余空间
-  padding: 8px 20px; // 减少上下内边距
-  transition: all 0.3s ease;
   overflow: hidden;
-  height: auto; // 自适应高度
+  color: var(--main-text);
+}
 
-  .input-section {
+[data-theme="light"] {
+  --main-bg: #fff;
+  --main-text: #222;
+}
+[data-theme="dark"] {
+  --main-bg: #23272f;
+  --main-text: #e8eaed;
+}
+
+.main-nav, .input-bar, .main-content {
+  background: var(--main-bg);
+  color: var(--main-text);
+}
+
+.main-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  padding: 0 24px;
+  height: 64px;
+  border-bottom: 1px solid #eee;
+  .nav-item {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 100%;
-
-    .main-input {
-      width: 100%;
-      margin: 0; // 移除外边距
-      
-      :deep(.el-input__wrapper) {
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        box-shadow: none;
-        width: 100%;
-      }
-
-      :deep(.el-input__inner) {
-        font-size: 14px;
-        line-height: 1.5;
-      }
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 10px 0;
+    border-radius: 12px;
+    transition: background 0.2s, color 0.2s;
+    .nav-icon {
+      width: 20px;
+      height: 20px;
+      margin-bottom: 2px;
+      :deep(svg) { width: 20px; height: 20px; }
+    }
+    .nav-label {
+      font-size: 12px;
+      color: #888;
+    }
+    &.active, &:hover {
+      background: #f0f4fa;
+      .nav-label, .nav-icon { color: #4285f4; }
     }
   }
 }
-
-.sidebar-footer {
-  padding: 16px;
-  height: auto !important;
-  min-height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-
-  .footer-content {
-    width: 100%;
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    font-size: 13px;
-    overflow-y: auto;
-    padding: 0;
-  }
-  
-  .project-list {
-    width: 100%;
-    padding: 8px 0;
-  }
-  
-  .empty-state {
-    text-align: center;
-    padding: 20px;
-    color: #7f8c8d;
-    font-size: 13px;
-  }
+.input-bar {
+  padding: 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: transparent;
 }
-
-// 响应式设计
-@media (max-width: 768px) {
-  .sidebar-header {
-    padding: 10px;
-
-    .icon-row {
-      gap: 4px;
-
-      .top-icon-btn {
-        max-width: 40px;
-        height: 40px;
-      }
-    }
+.main-content {
+  padding: 24px;
+  background: transparent;
+}
+@media (max-width: 750px) {
+  .main-panel {
+    max-width: 100vw;
+    min-width: 0;
+    border-radius: 0;
+    margin: 0;
   }
-
-  .sidebar-main {
-    padding: 16px;
-  }
-
-  .sidebar-footer {
-    padding: 12px;
+  .main-nav, .input-bar, .main-content {
+    padding-left: 4px;
+    padding-right: 4px;
   }
 }
 </style>
