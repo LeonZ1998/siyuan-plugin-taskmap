@@ -56,7 +56,9 @@ export function useTheme() {
 
   // 设置主题
   const setTheme = (theme: 'light' | 'dark') => {
-    isDark.value = theme === 'dark'
+    if ((theme === 'dark' && !isDark.value) || (theme === 'light' && isDark.value)) {
+      isDark.value = theme === 'dark'
+    }
   }
 
   // 获取系统主题偏好
@@ -142,6 +144,14 @@ export function useTheme() {
       const htmlElement = document.documentElement
       const isDarkTheme = htmlElement.getAttribute('data-theme') === 'dark'
       setTheme(isDarkTheme ? 'dark' : 'light')
+    }
+    // 兜底：以 html[data-theme] 为准
+    const htmlElement = document.documentElement
+    const htmlTheme = htmlElement.getAttribute('data-theme')
+    if (htmlTheme === 'dark') {
+      setTheme('dark')
+    } else if (htmlTheme === 'light') {
+      setTheme('light')
     }
   }
 

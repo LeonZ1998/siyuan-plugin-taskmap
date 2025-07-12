@@ -39,18 +39,6 @@
       <!-- 2. 项目信息卡片 -->
       <div class="project-info-card">
         <div class="project-info-content">
-          <div class="project-avatar-wrapper">
-            <el-avatar
-              class="project-avatar"
-              :src="''"
-              :icon="null"
-            >
-              <span v-if="props.project?.icon" v-html="getIconSVG(props.project.icon)" style="width:24px;height:24px;"></span>
-              <el-icon v-else :size="20">
-                <Folder />
-              </el-icon>
-            </el-avatar>
-          </div>
           <div class="project-details">
             <el-input
               v-model="editableProjectName"
@@ -542,6 +530,9 @@ function formatTotalTime(sec: number) {
   
   :deep(.el-dialog__body) { 
     padding: 0; 
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
   }
   
   // 暗色主题适配
@@ -577,16 +568,18 @@ function formatTotalTime(sec: number) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 20px;
   overflow: hidden;
+  border: none !important;
+  box-shadow: none !important;
   
   // 暗色主题适配
   html.dark & {
-    background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+    background: #18181c;
   }
 }
 
 .dialog-header {
   display: flex; align-items: center; justify-content: flex-start;
-  padding: 20px 24px 16px 24px;
+  padding: 10px 16px 6px 16px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -646,48 +639,22 @@ function formatTotalTime(sec: number) {
 .project-info-content {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-
-.project-avatar-wrapper {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-}
-
-.project-avatar {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  }
 }
 
 .project-details {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 20px;
-  max-width: 480px;
+  max-width: 900px;
 }
 
 .project-name-input {
   flex: 1;
   min-width: 0;
-  max-width: 320px;
-  font-size: 22px;
+  max-width: 720px;
+  font-size: 18px;
   font-weight: 600;
   background: transparent;
   border: none;
@@ -697,31 +664,35 @@ function formatTotalTime(sec: number) {
 }
 .project-name-input .el-input__wrapper {
   box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
+  border: 1.5px solid #d1d5db !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-radius: 8px !important;
   padding: 0;
-  transition: border 0.2s, box-shadow 0.2s;
+  transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+}
+html.dark .project-name-input .el-input__wrapper {
+  border: 1.5px solid #444 !important;
+  background: rgba(255,255,255,0.06) !important;
 }
 .project-name-input .el-input__inner {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   padding: 0;
   color: white !important;
-  
   &::placeholder {
     color: rgba(255, 255, 255, 0.6) !important;
   }
 }
-
+// 聚焦高亮，未聚焦无边框
 .project-name-input.is-focus .el-input__wrapper,
 .project-name-input:focus-within .el-input__wrapper {
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2) !important;
-  backdrop-filter: blur(10px);
+  border: 2px solid #338aff !important;
+  background: rgba(51, 138, 255, 0.08) !important;
+  box-shadow: 0 0 0 2px #338aff33 !important;
+  border-radius: 8px !important;
 }
 
 .project-type-select {
@@ -805,8 +776,8 @@ function formatTotalTime(sec: number) {
 .stat-card {
   border-radius: 20px !important;
   min-width: 0 !important;
-  min-height: 90px !important;
-  height: 110px !important;
+  min-height: 70px !important;
+  height: 80px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
@@ -814,7 +785,7 @@ function formatTotalTime(sec: number) {
   color: #fff !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
   cursor: pointer !important;
-  padding: 20px !important;
+  padding: 12px !important;
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(20px);
@@ -1028,13 +999,19 @@ function formatTotalTime(sec: number) {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  
+  html.dark & {
+    background: #23232a;
+    color: #e8eaed;
+    border: 1px solid #23232a;
+  }
 }
 
 .task-list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -1071,7 +1048,12 @@ function formatTotalTime(sec: number) {
 
 .task-list-content {
   width: 100%;
-  padding: 8px 0;
+  padding: 0;
+  
+  html.dark & {
+    background: transparent;
+    color: #e8eaed;
+  }
 }
 
 .empty-state {
@@ -1121,6 +1103,12 @@ function formatTotalTime(sec: number) {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.15);
   }
+  
+  html.dark & {
+    background: #23232a;
+    color: #e8eaed;
+    border: 1px solid #23232a;
+  }
 }
 
 .task-group-title {
@@ -1166,8 +1154,8 @@ function formatTotalTime(sec: number) {
 .project-name-input {
   flex: 1;
   min-width: 0;
-  max-width: 480px;
-  font-size: 20px;
+  max-width: 680px;
+  font-size: 18px;
   font-weight: 600;
   background: transparent;
   border: none;
@@ -1186,7 +1174,7 @@ function formatTotalTime(sec: number) {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   padding: 0;
 }
@@ -1205,5 +1193,18 @@ function formatTotalTime(sec: number) {
 }
 .create-task-btn {
   margin-left: auto;
+}
+
+// 覆盖 Element Plus 勾选框暗色主题
+html.dark :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #4285f4 !important;
+  border-color: #4285f4 !important;
+}
+html.dark :deep(.el-checkbox__inner) {
+  background-color: #23232a !important;
+  border-color: #5f6368 !important;
+}
+html.dark :deep(.el-checkbox__input.is-checked .el-checkbox__inner::after) {
+  border-color: #fff !important;
 }
 </style> 
