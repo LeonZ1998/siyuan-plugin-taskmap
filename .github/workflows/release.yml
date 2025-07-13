@@ -65,11 +65,8 @@ jobs:
 
       # Create Release
       - name: Create Release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v1
         with:
-          allowUpdates: true
-          artifactErrorsFailBuild: true
-          artifacts: "package.zip"
-          token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: false
+          files: package.zip
           draft: false
+          prerelease: false
