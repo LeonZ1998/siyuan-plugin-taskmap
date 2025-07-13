@@ -1,9 +1,9 @@
 {
   "name": "taskmap",
   "author": "leon",
-  "url": "https://github.com/Wetoria/plugin-sample-vite-vue",
-  "version": "0.0.1",
-  "minAppVersion": "2.10.14",
+  "url": "https://github.com/LeonZ1998/siyuan-plugin-taskmap",
+  "version": "1.0.0",
+  "minAppVersion": "2.8.0",
   "backends": [
     "all"
   ],
@@ -16,12 +16,12 @@
     "zh_CN": "TaskMap"
   },
   "description": {
-    "default": "A minimal taskmap plugin with top bar icon",
-    "en_US": "A minimal taskmap plugin with top bar icon",
-    "zh_CN": "一个简单的任务地图插件，带有顶栏图标"
+    "default": "A modern task management plugin with project tracking, task organization, and focus timer",
+    "en_US": "A modern task management plugin with project tracking, task organization, and focus timer",
+    "zh_CN": "现代化的任务管理插件，支持项目管理、任务分组和专注计时"
   },
   "readme": {
-    "default": "README.md",
+    "default": "README_zh_CN.md",
     "en_US": "README.md",
     "zh_CN": "README_zh_CN.md"
   },

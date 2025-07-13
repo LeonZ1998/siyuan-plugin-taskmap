@@ -1,110 +1,178 @@
-# Siyuan Plugin Template - Vite & Vue3
+# TaskMap 思源笔记插件
 
 [English](./README.md)
 
-> 本例同 [siyuan/plugin-sample](https://github.com/siyuan-note/plugin-sample).
+一个基于 Vue 3 和 Element Plus 的现代化思源笔记任务管理插件。
 
-1. 使用 Vite 打包
-2. 使用 Vue3 进行开发
-3. 提供一个github action 模板，能自动生成package.zip并上传到新版本中
-4. 提供自动更新 `plugin.json` 中的 `version` 并发布新版本的脚本。[link](#release-script)
+## ✨ 功能特性
 
-> [!NOTE]
->
-> 在开始之前，你需要先安装 [NodeJS](https://nodejs.org/en/download) 和 [pnpm](https://pnpm.io/installation)。
+### 📋 项目管理
+- 创建和管理不同类型的项目
+- 跟踪项目进度和完成率
+- 设置项目截止日期和里程碑
+- 归档和删除项目
 
-## 开始
+### ✅ 任务管理
+- **智能任务分组**: 任务自动按时间分组：
+  - 📅 **待安排**: 没有截止日期的任务
+  - 🌞 **今日待办**: 今天到期的任务
+  - 📆 **未来一周**: 未来7天内到期的任务
+  - ✅ **已完成**: 所有已完成的任务
+- **层级任务**: 支持子任务和父子关系
+- **任务详情**: 丰富的任务编辑功能，支持备注和日期范围
+- **拖拽排序**: 重新排序任务和在项目间移动
+- **右键菜单**: 快速操作（添加子任务、移动、删除、开始计时）
 
-1. 通过 `Use the template` 按钮，以该仓库为模板创建你自己的项目。
-> [!WARNING]
->
-> 请注意库名和插件名称一致，默认分支必须为 `main`.
+### ⏱️ 专注计时
+- **基于任务的计时**: 选择任何任务开始专注工作
+- **计时控制**: 开始、暂停、继续和结束计时会话
+- **专注历史**: 跟踪和查看专注会话历史
+- **统计分析**: 查看总专注时间和会话次数
 
+### 🎨 现代化界面
+- **响应式设计**: 在桌面和移动设备上无缝工作
+- **主题支持**: 自动同步思源主题（明亮/暗黑/跟随系统）
+- **Element Plus**: 美观一致的UI组件
+- **流畅动画**: 现代化的交互反馈
 
-2. 使用 `git clone` 克隆创建好的仓库。
-3. 使用 `pnpm i` 安装项目所需的依赖。
+## 🚀 快速开始
 
-4. 复制 `.env.example` 文件并取名为 `.env`，修改其中的 `VITE_SIYUAN_WORKSPACE_PATH` 为你的思源工作空间。
+### 安装
+1. 打开思源笔记
+2. 进入 **设置** → **集市**
+3. 搜索 "TaskMap"
+4. 点击 **安装** 并 **启用**
 
+### 基本使用
 
-> [!TIP]
->
-> 如果你不喜欢将项目打包至工作空间中，可以使用 `软链接` 的方式。
->
-> 设置 `VITE_DEV_DIST_DIR` 为任意文件夹，然后使用 `软链接` 链接 `siyuan_workspace/data/plugins/your_plugin_name` 目录到 `VITE_DEV_DIST_DIR`。
+#### 创建项目
+1. 导航到 **项目** 标签页
+2. 在输入栏中输入项目名称
+3. 按 **Enter** 创建
+4. 点击任何项目卡片打开详细视图
 
+#### 管理任务
+1. 切换到 **任务** 标签页
+2. 在输入栏中输入任务名称
+3. 按 **Enter** 创建
+4. 使用任务分组来组织你的工作
 
-5. 使用 `pnpm dev` 启动项目。
+#### 使用计时器
+1. 进入 **计时** 标签页
+2. 从下拉菜单中选择任务
+3. 点击 **开始** 开始计时
+4. 根据需要使用 **暂停** 和 **继续**
+5. 完成后点击 **结束**
 
-   如果成功了，你将会在 `思源 - 设置 - 集市` 中看到名为 `plugin-sample-vite-vue` 的插件。
-   
-6. 启用插件, 并检查 `App.vue` 文件进行开发。
+## 🛠️ 开发
 
-   这个文件中包含了一些代码示例。
+### 环境要求
+- Node.js 16+
+- pnpm
+- 思源笔记 2.8.0+
 
+### 设置
+```bash
+# 克隆仓库
+git clone https://github.com/LeonZ1998/siyuan-plugin-taskmap.git
+cd siyuan-plugin-taskmap
 
-> [!TIP]
->
-> 更多的插件代码案例，请查看： [siyuan/plugin-sample/src/index.ts](https://github.com/siyuan-note/plugin-sample/blob/main/src/index.ts)
+# 安装依赖
+pnpm install
 
+# 复制环境文件
+cp .env.example .env
 
+# 编辑 .env 文件并设置你的思源工作空间路径
+# VITE_SIYUAN_WORKSPACE_PATH=D:/YourSiyuanWorkspace
 
-## 上架集市
-
-### 使用 Github Action
-
-1. 你可以在本地使用插件的版本创建一个名为 `v*` 的 tag。
-2. 将创建好的 tag 推送至 Github。模板项目提供了 Action 脚本自动构建新版本。
-
-
-> [!TIP]
->
-> <div id="release-script"></div>这个项目提供了自动创建 `tag` 并发布新版本的脚本，你可以通过运行 `pnpm release` 创建一个修正版本。
->
-> 你可以通过使用参数 `--mode=manual|patch|minor|major` 设置版本号的调整模式，或者通过 `pnpm release:manual` 的方式直接以特定参数进行发布。
->
-> 完整的命令列表请查看 `package.json` 文件。
-
-
-样例中自带了 github action，可以自动打包发布，请遵循以下操作：
-
-1. 设置项目 `https://github.com/OWNER/REPO/settings/actions` 页面向下划到 Workflow Permissions，打开配置
-
-![img](./asset/action.png)
-
-2. 需要发布版本的时候，push 一个格式为 `v*` 的 tag，github 就会自动打包发布 release（包括 package.zip）
-3. 默认使用保守策略进行 pre-release 发布，如果觉得没有必要，可以更改 release.yml 中的设置：
-
-```yaml
-- name: Release
-    uses: ncipollo/release-action@v1
-    with.
-        allowUpdates: true
-        artifactErrorsFailBuild: true
-        artifacts: 'package.zip'
-        token: ${{ secrets.GITHUB_TOKEN }}
-        prerelease: true # change this to false
+# 开始开发
+pnpm dev
 ```
 
-### 手动发布
+### 构建
+```bash
+# 构建生产版本
+pnpm build
 
-1. 使用 `pnpm build` 构建 `package.zip`
-2. 在 GitHub 上创建一个新的发布，使用插件版本号作为 “Tag version”，示例: https://github.com/siyuan-note/plugin-sample/releases
-3. 上传 package.zip 作为二进制附件
-4. 提交发布
-
-> [!NOTE]
-> 
-> 如果是第一次发布版本，还需要创建一个 PR 到 [Community Bazaar](https://github.com/siyuan-note/bazaar)  社区集市仓库，修改该库的 plugins.json。该文件是所有社区插件库的索引，格式为：
-
-```json
-{
-  "repos": [
-    "username/reponame"
-  ]
-}
+# 这将生成用于分发的 package.zip
 ```
+
+## 🏗️ 架构
+
+### 技术栈
+- **前端**: Vue 3 (Composition API) + TypeScript
+- **UI框架**: Element Plus
+- **构建工具**: Vite
+- **数据存储**: IndexedDB
+- **状态管理**: Vue 3 响应式系统
+- **事件系统**: 自定义事件总线
+
+### 项目结构
+```
+src/
+├── components/          # Vue 组件
+│   ├── TaskCard.vue    # 任务显示组件
+│   ├── TaskPage.vue    # 任务管理页面
+│   ├── ProjectPage.vue # 项目显示组件
+│   └── TimerPage.vue   # 计时器界面
+├── utils/              # 工具函数
+│   ├── dbManager.ts    # 数据库操作
+│   └── eventBus.ts     # 事件通信
+├── types/              # TypeScript 类型定义
+├── composables/        # Vue 组合式函数
+└── App.vue            # 主应用组件
+```
+
+## 📊 数据存储
+
+TaskMap 使用 IndexedDB 进行本地数据存储：
+- **项目**: 项目信息和元数据
+- **任务**: 任务详情、关系和状态
+- **计时记录**: 专注会话历史和统计
+
+所有数据都存储在浏览器本地，确保隐私和离线功能。
+
+## 🎯 核心功能详解
+
+### 智能任务分组
+任务根据截止日期自动分类：
+- **待安排**: 适合没有具体截止日期的任务
+- **今日待办**: 专注于当务之急
+- **未来一周**: 为即将到来的工作做计划
+- **已完成**: 跟踪你的进度和成就
+
+### 主题集成
+TaskMap 无缝集成思源的主题系统：
+- 自动检测并同步思源主题
+- 支持明亮、暗黑和跟随系统主题模式
+- 所有UI组件实时适应主题变化
+
+### 右键菜单操作
+右键点击任何任务进行快速操作：
+- **添加子任务**: 创建子任务
+- **移动到项目**: 在项目间转移任务
+- **开始计时**: 开始专注会话
+- **删除**: 删除任务（带确认）
+
+## 🤝 贡献
+
+我们欢迎贡献！请随时：
+- 报告错误
+- 建议新功能
+- 提交拉取请求
+- 改进文档
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 🔗 链接
+
+- **仓库**: https://github.com/LeonZ1998/siyuan-plugin-taskmap
+- **思源笔记**: https://github.com/siyuan-note/siyuan
+- **Element Plus**: https://element-plus.org/
 
 ---
 
-更多有关于插件的信息，请查看： [siyuan/plugin-sample](https://github.com/siyuan-note/plugin-sample).
+为思源社区而制作 ❤️

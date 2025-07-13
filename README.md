@@ -1,163 +1,178 @@
-# Siyuan Plugin Template - Vite & Vue3
+# TaskMap Plugin for Siyuan
 
 [简体中文](./README_zh_CN.md)
 
-> Consistent with [siyuan/plugin-sample](https://github.com/siyuan-note/plugin-sample).
+A modern task management plugin for Siyuan Note, built with Vue 3 and Element Plus.
 
-1. Use Vite for packaging
-2. Use Vue3 for development
-3. Provides a github action template to automatically generate package.zip and upload to new release
-4. Provides a script to auto create tag and release. [link](#release-script)
+## ✨ Features
 
-> [!NOTE]
->
-> Before your start, you need install [NodeJS](https://nodejs.org/en/download) and [pnpm](https://pnpm.io/installation) first.
+### 📋 Project Management
+- Create and manage projects with different types
+- Track project progress and completion rates
+- Set project deadlines and milestones
+- Archive and delete projects
 
-## Get started
+### ✅ Task Management
+- **Smart Task Grouping**: Tasks are automatically organized into:
+  - 📅 **Unscheduled**: Tasks without due dates
+  - 🌞 **Today**: Tasks due today
+  - 📆 **Next Week**: Tasks due within the next 7 days
+  - ✅ **Completed**: All completed tasks
+- **Hierarchical Tasks**: Support for subtasks and parent-child relationships
+- **Task Details**: Rich task editing with notes and date ranges
+- **Drag & Drop**: Reorder tasks and move between projects
+- **Context Menu**: Right-click for quick actions (add subtask, move, delete, start timer)
 
-1. Use the `Use the template` button to make a copy of this repo as template.  
-> [!WARNING]
->
-> That the repository name should match the plugin name, and the default branch must be `main`.
+### ⏱️ Focus Timer
+- **Task-based Timing**: Select any task to start focused work sessions
+- **Timer Controls**: Start, pause, resume, and end timer sessions
+- **Focus History**: Track and view your focus session history
+- **Statistics**: View total focus time and session counts
 
+### 🎨 Modern UI
+- **Responsive Design**: Works seamlessly on desktop and mobile
+- **Theme Support**: Automatically syncs with Siyuan's theme (light/dark/system)
+- **Element Plus**: Beautiful and consistent UI components
+- **Smooth Animations**: Modern interaction feedback
 
-2. Use `git clone` to clone the copied repo to your computer.
-3. Use `pnpm i` to install the dependencies.
+## 🚀 Quick Start
 
-4. Copy the `.env.example` file as `.env`, set the `VITE_SIYUAN_WORKSPACE_PATH` to your SiYuan workspace.
+### Installation
+1. Open Siyuan Note
+2. Go to **Settings** → **Marketplace**
+3. Search for "TaskMap"
+4. Click **Install** and **Enable**
 
+### Basic Usage
 
-> [!TIP]
->
-> If you don't like build the project into your workspace, you can use `Symbolic Link` to link the folder.
->
-> Set `VITE_DEV_DIST_DIR` to any folder, and use `Symbolic Link` to link `siyuan_workspace/data/plugins/your_plugin_name` to `VITE_DEV_DIST_DIR`.
+#### Creating Projects
+1. Navigate to the **Projects** tab
+2. Type a project name in the input bar
+3. Press **Enter** to create
+4. Click on any project card to open detailed view
 
+#### Managing Tasks
+1. Switch to the **Tasks** tab
+2. Type a task name in the input bar
+3. Press **Enter** to create
+4. Use the task groups to organize your work
 
-5. Use `pnpm dev` to run the project.
-   If successed, you will find the plugin in `Siyuan - Settings - Marketplace`, named as `plugin-sample-vite-vue`.
-6. Enable the plugin, and check the `App.vue` file to start your development.
-   
-   This file contains some example codes.
+#### Using the Timer
+1. Go to the **Timer** tab
+2. Select a task from the dropdown
+3. Click **Start** to begin timing
+4. Use **Pause** and **Resume** as needed
+5. Click **End** when finished
 
+## 🛠️ Development
 
-> [!TIP]
->
-> More plugin code examples, please check [siyuan/plugin-sample/src/index.ts](https://github.com/siyuan-note/plugin-sample/blob/main/src/index.ts)
+### Prerequisites
+- Node.js 16+
+- pnpm
+- Siyuan Note 2.8.0+
 
+### Setup
+```bash
+# Clone the repository
+git clone https://github.com/LeonZ1998/siyuan-plugin-taskmap.git
+cd siyuan-plugin-taskmap
 
+# Install dependencies
+pnpm install
 
-## List on the Marketplace
+# Copy environment file
+cp .env.example .env
 
-### Use Github Action
+# Edit .env file and set your Siyuan workspace path
+# VITE_SIYUAN_WORKSPACE_PATH=D:/YourSiyuanWorkspace
 
-1. You can create a new tag, use your new version number as the `Tag version` in your local.
-2. Then push the tag to Github. The Github Action will create a new Release for you.
-
-> [!TIP]
->
-> <div id="release-script"></div>This template provided a script to auto create tag and release. You can use `pnpm release` to create a patch version.
->
-> You can add `--mode=manual|patch|minor|major` arg to set release mode, or run with arg like `pnpm release:manual`. 
-> 
-> All the scripts please see the `package.json` file.
-
-The github action is included in this sample, you can use it to publish your new realse to marketplace automatically:
-
-1. In your repo setting page `https://github.com/OWNER/REPO/settings/actions`, down to Workflow Permissions and open the configuration like this:
-
-![img](./asset/action.png)
-
-2. Push a tag in the format `v*` and github will automatically create a new release with new bulit package.zip
-3. By default, it will only publish a pre-release, if you don't think this is necessary, change the settings in release.yml
-
-```yaml
-- name: Release
-    uses: ncipollo/release-action@v1
-    with.
-        allowUpdates: true
-        artifactErrorsFailBuild: true
-        artifacts: 'package.zip'
-        token: ${{ secrets.GITHUB_TOKEN }}
-        prerelease: true # change this to false
+# Start development
+pnpm dev
 ```
 
-### Manual
+### Build
+```bash
+# Build for production
+pnpm build
 
-1. Use `pnpm build` to generate `package.zip`
-2. Create a new Github release using your new version number as the "Tag version". See here for an example: https://github.com/siyuan-note/plugin-sample/releases
-3. Upload the file package.zip as binary attachments
-4. Publish the release
-
-> [!NOTE]
-> If it is the first release, please create a pull request to the [Community Bazaar](https://github.com/siyuan-note/bazaar) repository and modify the plugins.json file in it. This file is the index of all community plugin repositories, the format is:
-
-```json
-{
-  "repos": [
-    "username/reponame"
-  ]
-}
+# This will generate package.zip for distribution
 ```
+
+## 🏗️ Architecture
+
+### Tech Stack
+- **Frontend**: Vue 3 (Composition API) + TypeScript
+- **UI Framework**: Element Plus
+- **Build Tool**: Vite
+- **Data Storage**: IndexedDB
+- **State Management**: Vue 3 Reactivity
+- **Event System**: Custom Event Bus
+
+### Project Structure
+```
+src/
+├── components/          # Vue components
+│   ├── TaskCard.vue    # Task display component
+│   ├── TaskPage.vue    # Task management page
+│   ├── ProjectPage.vue # Project display component
+│   └── TimerPage.vue   # Timer interface
+├── utils/              # Utility functions
+│   ├── dbManager.ts    # Database operations
+│   └── eventBus.ts     # Event communication
+├── types/              # TypeScript type definitions
+├── composables/        # Vue composables
+└── App.vue            # Main application component
+```
+
+## 📊 Data Storage
+
+TaskMap uses IndexedDB for local data storage:
+- **Projects**: Project information and metadata
+- **Tasks**: Task details, relationships, and status
+- **Timer Records**: Focus session history and statistics
+
+All data is stored locally in your browser, ensuring privacy and offline functionality.
+
+## 🎯 Key Features Explained
+
+### Smart Task Grouping
+Tasks are automatically categorized based on their due dates:
+- **Unscheduled**: Perfect for tasks without specific deadlines
+- **Today**: Focus on immediate priorities
+- **Next Week**: Plan ahead for upcoming work
+- **Completed**: Track your progress and achievements
+
+### Theme Integration
+TaskMap seamlessly integrates with Siyuan's theme system:
+- Automatically detects and syncs with Siyuan's theme
+- Supports light, dark, and system theme modes
+- All UI components adapt to theme changes in real-time
+
+### Context Menu Actions
+Right-click on any task for quick actions:
+- **Add Subtask**: Create child tasks
+- **Move to Project**: Transfer tasks between projects
+- **Start Timer**: Begin a focus session
+- **Delete**: Remove tasks (with confirmation)
+
+## 🤝 Contributing
+
+We welcome contributions! Please feel free to:
+- Report bugs
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Repository**: https://github.com/LeonZ1998/siyuan-plugin-taskmap
+- **Siyuan Note**: https://github.com/siyuan-note/siyuan
+- **Element Plus**: https://element-plus.org/
 
 ---
 
-More other plugin info, please check in [siyuan/plugin-sample](https://github.com/siyuan-note/plugin-sample).
-
-# TaskMap Plugin for Siyuan
-
-一个基于 Vue 3 和 Element Plus 的思源笔记任务管理插件。
-
-## 功能特性
-
-- 📋 **项目管理**: 创建、编辑和管理项目
-- ✅ **任务管理**: 任务创建、状态跟踪和优先级管理
-- ⏱️ **任务计时**: 时间跟踪和统计
-- 📊 **数据统计**: 项目进度和完成情况分析
-- 🎨 **主题同步**: 自动跟随思源笔记主题切换
-
-## 主题同步功能
-
-TaskMap 插件支持自动跟随思源笔记的主题设置：
-
-### 自动主题检测
-- 插件启动时自动检测思源笔记的当前主题
-- 支持思源的三种主题模式：明亮、暗黑、跟随系统
-- 实时监听思源主题变化并自动同步
-
-### 检测方式
-插件使用多种方式检测思源主题：
-1. **API 方式**: 通过思源 API 获取外观设置
-2. **配置方式**: 从 `window.siyuan.config` 读取主题配置
-3. **属性方式**: 检查 HTML 的 `data-theme` 属性
-4. **事件监听**: 监听思源主题变化事件
-
-### Element Plus 集成
-- 自动应用 Element Plus 的暗黑模式 CSS 变量
-- 所有 UI 组件自动适配主题变化
-- 平滑的主题切换动画
-
-## 开发
-
-```bash
-# 安装依赖
-npm install
-
-# 开发模式
-npm run dev
-
-# 构建
-npm run build
-```
-
-## 技术栈
-
-- Vue 3 (Composition API)
-- Element Plus
-- TypeScript
-- IndexedDB (数据存储)
-- VueUse (工具库)
-
-## 许可证
-
-MIT License
+Made with ❤️ for the Siyuan community
