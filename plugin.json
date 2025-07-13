@@ -1,6 +1,6 @@
 {
   "name": "taskmap",
-  "author": "leon",
+  "author": "LeonZ1998",
   "url": "https://github.com/LeonZ1998/siyuan-plugin-taskmap",
   "version": "1.0.0",
   "minAppVersion": "2.8.0",
@@ -28,5 +28,11 @@
   "funding": {
     "custom": []
   },
-  "keywords": []
+  "keywords": [
+    "task",
+    "project",
+    "timer",
+    "management",
+    "productivity"
+  ]
 }
