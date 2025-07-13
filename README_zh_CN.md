@@ -49,27 +49,24 @@
 1. 导航到 **项目** 标签页
 2. 在输入栏中输入项目名称
 3. 按 **Enter** 创建
-4. 点击任何项目卡片打开详细视图
 
 #### 管理任务
-1. 切换到 **任务** 标签页
-2. 在输入栏中输入任务名称
-3. 按 **Enter** 创建
-4. 使用任务分组来组织你的工作
+1. 导航到 **任务** 标签页
+2. 任务自动按时间分组
+3. 点击任何任务打开详情面板
+4. 右键进行快速操作
 
-#### 使用计时器
-1. 进入 **计时** 标签页
-2. 从下拉菜单中选择任务
+#### 使用专注计时
+1. 导航到 **计时** 标签页
+2. 选择要专注的任务
 3. 点击 **开始** 开始计时
-4. 根据需要使用 **暂停** 和 **继续**
-5. 完成后点击 **结束**
+4. 跟踪你的专注会话
 
 ## 🛠️ 开发
 
 ### 环境要求
-- Node.js 16+
-- pnpm
-- 思源笔记 2.8.0+
+- Node.js 18+
+- pnpm 8+
 
 ### 设置
 ```bash
@@ -80,13 +77,7 @@ cd siyuan-plugin-taskmap
 # 安装依赖
 pnpm install
 
-# 复制环境文件
-cp .env.example .env
-
-# 编辑 .env 文件并设置你的思源工作空间路径
-# VITE_SIYUAN_WORKSPACE_PATH=D:/YourSiyuanWorkspace
-
-# 开始开发
+# 启动开发服务器
 pnpm dev
 ```
 
@@ -95,73 +86,86 @@ pnpm dev
 # 构建生产版本
 pnpm build
 
-# 这将生成用于分发的 package.zip
+# 构建将生成 package.zip 用于思源
 ```
+
+## 📦 发布流程
+
+### 自动发布
+本项目使用 GitHub Actions 进行自动发布。当你推送一个标签时，它会自动：
+1. 构建项目
+2. 创建 GitHub Release
+3. 上传 `package.zip` 作为附件
+
+### 手动发布
+使用提供的发布脚本：
+
+**PowerShell (Windows 推荐):**
+```powershell
+.\scripts\release.ps1 1.0.1
+```
+
+**Bash (Linux/macOS):**
+```bash
+./scripts/release.sh 1.0.1
+```
+
+**Windows 批处理:**
+```cmd
+scripts\release.bat 1.0.1
+```
+
+脚本将：
+- 更新 `plugin.json` 中的版本号
+- 创建 git 标签
+- 推送到 GitHub
+- 触发自动构建和发布
+
+### 发布工作流
+1. **创建标签**: 脚本创建类似 `v1.0.1` 的标签
+2. **推送到 GitHub**: 标签推送触发 GitHub Actions
+3. **自动构建**: GitHub Actions 构建项目
+4. **创建发布**: 创建新的 GitHub Release 并包含 `package.zip`
+5. **更新集市**: 发布可供用户下载
 
 ## 🏗️ 架构
 
 ### 技术栈
-- **前端**: Vue 3 (Composition API) + TypeScript
-- **UI框架**: Element Plus
+- **前端**: Vue 3 + TypeScript + Element Plus
 - **构建工具**: Vite
 - **数据存储**: IndexedDB
-- **状态管理**: Vue 3 响应式系统
-- **事件系统**: 自定义事件总线
+- **状态管理**: Vue 3 Composition API
+- **样式**: SCSS + CSS 变量主题
 
 ### 项目结构
 ```
 src/
 ├── components/          # Vue 组件
-│   ├── TaskCard.vue    # 任务显示组件
-│   ├── TaskPage.vue    # 任务管理页面
-│   ├── ProjectPage.vue # 项目显示组件
-│   └── TimerPage.vue   # 计时器界面
+│   ├── ProjectPage.vue  # 项目管理
+│   ├── TaskPage.vue     # 任务管理
+│   ├── TimerPage.vue    # 专注计时
+│   └── ...
+├── composables/         # Vue 组合式函数
+├── types/              # TypeScript 类型定义
 ├── utils/              # 工具函数
 │   ├── dbManager.ts    # 数据库操作
-│   └── eventBus.ts     # 事件通信
-├── types/              # TypeScript 类型定义
-├── composables/        # Vue 组合式函数
-└── App.vue            # 主应用组件
+│   ├── indexedDB.ts    # IndexedDB 包装器
+│   └── ...
+└── main.ts             # 入口文件
 ```
 
-## 📊 数据存储
-
-TaskMap 使用 IndexedDB 进行本地数据存储：
-- **项目**: 项目信息和元数据
-- **任务**: 任务详情、关系和状态
-- **计时记录**: 专注会话历史和统计
-
-所有数据都存储在浏览器本地，确保隐私和离线功能。
-
-## 🎯 核心功能详解
-
-### 智能任务分组
-任务根据截止日期自动分类：
-- **待安排**: 适合没有具体截止日期的任务
-- **今日待办**: 专注于当务之急
-- **未来一周**: 为即将到来的工作做计划
-- **已完成**: 跟踪你的进度和成就
-
-### 主题集成
-TaskMap 无缝集成思源的主题系统：
-- 自动检测并同步思源主题
-- 支持明亮、暗黑和跟随系统主题模式
-- 所有UI组件实时适应主题变化
-
-### 右键菜单操作
-右键点击任何任务进行快速操作：
-- **添加子任务**: 创建子任务
-- **移动到项目**: 在项目间转移任务
-- **开始计时**: 开始专注会话
-- **删除**: 删除任务（带确认）
+### 数据模型
+- **项目**: `{ id, name, type, color, createdAt, ... }`
+- **任务**: `{ id, title, projectId, parentId, dueDate, isCompleted, ... }`
+- **专注会话**: `{ id, taskId, startTime, endTime, duration, ... }`
 
 ## 🤝 贡献
 
-我们欢迎贡献！请随时：
-- 报告错误
-- 建议新功能
-- 提交拉取请求
-- 改进文档
+1. Fork 仓库
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 打开 Pull Request
 
 ## 📄 许可证
 
@@ -169,9 +173,9 @@ TaskMap 无缝集成思源的主题系统：
 
 ## 🔗 链接
 
-- **仓库**: https://github.com/LeonZ1998/siyuan-plugin-taskmap
-- **思源笔记**: https://github.com/siyuan-note/siyuan
-- **Element Plus**: https://element-plus.org/
+- [GitHub 仓库](https://github.com/LeonZ1998/siyuan-plugin-taskmap)
+- [思源笔记](https://github.com/siyuan-note/siyuan)
+- [Element Plus](https://element-plus.org/)
 
 ---
 
