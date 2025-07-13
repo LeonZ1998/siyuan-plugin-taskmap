@@ -11,16 +11,16 @@ jobs:
     steps:
       # Checkout
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Install Node.js
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           registry-url: "https://registry.npmjs.org"
 
-        # Install pnpm
+      # Install pnpm
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         id: pnpm-install
@@ -48,15 +48,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Build for production, 这一步会生成一个 package.zip
+      # Build for production
       - name: Build for production
         run: pnpm build
 
-      - name: Release
+      # Verify package.zip exists
+      - name: Verify package.zip
+        run: |
+          if [ ! -f "package.zip" ]; then
+            echo "❌ package.zip not found!"
+            ls -la
+            exit 1
+          fi
+          echo "✅ package.zip found"
+          ls -lh package.zip
+
+      # Create Release
+      - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
           artifacts: "package.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
-          prerelease: true
+          prerelease: false
+          draft: false
