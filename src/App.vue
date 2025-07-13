@@ -26,7 +26,6 @@
               <Plus v-if="currentPage === 'project'" />
               <Edit v-else-if="currentPage === 'task'" />
               <Timer v-else-if="currentPage === 'timer'" />
-              <Calendar v-else-if="currentPage === 'habit'" />
             </el-icon>
           </template>
         </el-input>
@@ -54,7 +53,6 @@
         </div>
         <TaskPage v-else-if="currentPage === 'task'" :tasks="tasks" :all-projects="projects" @refresh="handleRefresh" />
         <TimerPage v-else-if="currentPage === 'timer'" />
-        <HabitPage v-else-if="currentPage === 'habit'" />
       </div>
       <ProjectDetailDialog
         v-model="showProjectDialog"
@@ -74,7 +72,6 @@ import {
   Document,
   Edit,
   Timer,
-  Calendar,
   Plus
 } from '@element-plus/icons-vue'
 import ProjectPage from './components/ProjectPage.vue'
@@ -82,7 +79,6 @@ import TaskPage from './components/TaskPage.vue'
 import TimerPage from './components/TimerPage.vue'
 import ProjectDetailDialog from './components/ProjectDetailDialog.vue'
 import TaskList from './components/TaskList.vue'
-import HabitPage from './components/HabitPage.vue'
 import { projectDB, taskDB } from '@/utils/dbManager'
 import { ProjectStatus, ProjectType } from '@/types/project.d'
 import { useTheme } from '@/composables/useTheme'
@@ -105,8 +101,7 @@ const inputPlaceholder = computed(() => {
 const topIcons = [
   { icon: Document, action: 'project', title: '项目' },
   { icon: Edit, action: 'task', title: '任务' },
-  { icon: Timer, action: 'timer', title: '计时' },
-  { icon: Calendar, action: 'habit', title: '习惯' }
+  { icon: Timer, action: 'timer', title: '计时' }
 ]
 
 const handleIconClick = (action: string) => {
