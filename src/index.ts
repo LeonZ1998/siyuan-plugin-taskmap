@@ -13,6 +13,7 @@ import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import App from './App.vue'
 import { useTheme } from './composables/useTheme'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 let PluginInfo = {
   version: '',
@@ -105,7 +106,7 @@ export default class TaskMapPlugin extends Plugin {
         
         // 创建Vue应用并挂载到侧边栏
         const app = createApp(App)
-        app.use(ElementPlus)
+        app.use(ElementPlus, { locale: zhCn })
         app.mount(dock.element)
         
         // 保存app实例以便后续清理

@@ -66,14 +66,20 @@ async function loadTaskDetail() {
     if (task) {
       form.value.name = task.name || ''
       form.value.note = task.notes || ''
-      // 日期
-      if (task.startDate && task.endDate) {
+      // 区间优先
+      if (typeof task.startDate === 'number' && typeof task.endDate === 'number' && task.startDate !== task.endDate) {
         datePanelValue.value.mode = 'range'
         datePanelValue.value.rangeStart = new Date(task.startDate)
         datePanelValue.value.rangeEnd = new Date(task.endDate)
-      } else if (task.dueDate) {
+        showDatePanel.value = true
+      } else if (typeof task.dueDate === 'number' && !isNaN(task.dueDate)) {
         datePanelValue.value.mode = 'single'
         datePanelValue.value.singleDate = new Date(task.dueDate)
+        showDatePanel.value = true
+      } else {
+        datePanelValue.value.mode = 'single'
+        datePanelValue.value.singleDate = new Date()
+        showDatePanel.value = false
       }
     }
   } else {
@@ -82,6 +88,7 @@ async function loadTaskDetail() {
     form.value.note = ''
     datePanelValue.value.mode = 'single'
     datePanelValue.value.singleDate = new Date()
+    showDatePanel.value = false
   }
 }
 
@@ -107,24 +114,24 @@ async function onSaveTask() {
   // 获取备注
   const notes = form.value.note
   // 获取日期数据
-  const datePanel = datePanelRef.value
   let startDate = null, endDate = null, dueDate = null
-  if (datePanel && datePanel.panelValue) {
-    if (datePanel.panelValue.mode === 'single' && datePanel.panelValue.singleDate) {
-      if (datePanel.panelValue.singleDate instanceof Date) {
-        const t = datePanel.panelValue.singleDate.getTime()
-        startDate = endDate = dueDate = t
-      }
-    } else if (datePanel.panelValue.mode === 'range' && datePanel.panelValue.rangeStart && datePanel.panelValue.rangeEnd) {
-      if (datePanel.panelValue.rangeStart instanceof Date && datePanel.panelValue.rangeEnd instanceof Date) {
-        startDate = datePanel.panelValue.rangeStart.getTime()
-        endDate = datePanel.panelValue.rangeEnd.getTime()
-        dueDate = endDate
-      }
+  
+  // 从当前状态获取日期数据
+  if (datePanelValue.value.mode === 'single' && datePanelValue.value.singleDate) {
+    if (datePanelValue.value.singleDate instanceof Date) {
+      const t = datePanelValue.value.singleDate.getTime()
+      startDate = endDate = dueDate = t
+    }
+  } else if (datePanelValue.value.mode === 'range' && datePanelValue.value.rangeStart && datePanelValue.value.rangeEnd) {
+    if (datePanelValue.value.rangeStart instanceof Date && datePanelValue.value.rangeEnd instanceof Date) {
+      startDate = datePanelValue.value.rangeStart.getTime()
+      endDate = datePanelValue.value.rangeEnd.getTime()
+      dueDate = endDate
     }
   }
   if (props.taskId) {
     // 编辑任务
+    console.log('[TaskDetailPanel] 保存任务日期:', { name, dueDate, startDate, endDate })
     await taskDB.update(props.taskId, {
       name,
       notes,

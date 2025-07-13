@@ -21,7 +21,7 @@
       />
       <div class="task-meta">
         <span v-if="showProjectName" class="project-name">{{ task.projectName || '无项目' }}</span>
-        <span v-if="task.startDate" class="task-date">{{ formatShortDate(task.startDate) }}</span>
+        <span v-if="task.dueDate" class="task-date">{{ formatTaskDate(task) }}</span>
         <span v-else class="task-date">无日期</span>
       </div>
     </div>
@@ -103,9 +103,19 @@ import { ElMessage, ElMessageBox } from 'element-plus'
  */
 const props = defineProps<{ task: any, showProjectName?: boolean, allProjects?: any[] }>()
 const emit = defineEmits(['refresh'])
-const formatShortDate = (timestamp: number) => {
+const formatShortDate = (timestamp: number | string) => {
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+function formatTaskDate(task) {
+  if (task.startDate && task.endDate && task.startDate !== task.endDate) {
+    return `${formatShortDate(task.startDate)} ~ ${formatShortDate(task.endDate)}`
+  } else if (task.dueDate) {
+    return formatShortDate(task.dueDate)
+  } else {
+    return '无日期'
+  }
 }
 
 const isEditing = ref(false)

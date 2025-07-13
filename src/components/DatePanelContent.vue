@@ -20,6 +20,7 @@
           style="width: 180px; margin-right: 12px;"
           :disabled-date="date => localRangeEnd && date.getTime() > new Date(localRangeEnd).getTime()"
           @change="onRangeStartChange"
+          :locale="zhLocale"
         />
         <el-date-picker
           v-model="localRangeEnd"
@@ -28,6 +29,7 @@
           style="width: 180px;"
           :disabled-date="date => localRangeStart && date.getTime() < new Date(localRangeStart).getTime()"
           @change="onRangeEndChange"
+          :locale="zhLocale"
         />
       </div>
       <el-switch v-model="localUseTargetTime" class="date-panel-switch" active-text="使用项目时间" @change="onUseTargetTimeChange" />
