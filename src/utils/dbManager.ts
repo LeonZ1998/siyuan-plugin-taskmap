@@ -1,14 +1,14 @@
 // 数据库管理器实例
 // 配置各种数据结构的存储和索引
 
-import { IndexedDBManager, DBConfig } from './indexedDB';
+import { DBConfig } from './indexedDB';
+import { SQLiteManager } from './sqlite';
 import type { Project } from '../types/project';
 import { 
   generateProjectId, 
   generateTaskId, 
   generateCategoryId, 
   generateTagId, 
-  generateSettingId,
   generatePrefixedSiyuanId
 } from './idGenerator';
 
@@ -85,7 +85,7 @@ const dbConfig: DBConfig = {
 };
 
 // 创建数据库管理器实例
-export const dbManager = new IndexedDBManager(dbConfig);
+export const dbManager = new SQLiteManager(dbConfig);
 
 // 项目相关操作
 export const projectDB = {
@@ -146,7 +146,7 @@ export const projectDB = {
     return dbManager.queryByIndexRange<Project>(
       'projects',
       'dueDate',
-      IDBKeyRange.bound(now.toISOString(), thirtyDaysLater.toISOString())
+      { lower: now.toISOString(), upper: thirtyDaysLater.toISOString() }
     );
   },
 
@@ -157,7 +157,7 @@ export const projectDB = {
     return dbManager.queryByIndexRange<Project>(
       'projects',
       'dueDate',
-      IDBKeyRange.upperBound(now.toISOString())
+      { upper: now.toISOString() }
     );
   },
 
@@ -299,81 +299,23 @@ export const tagDB = {
 export const settingsDB = {
   // 设置配置
   async set(key: string, value: any): Promise<any> {
-    const db = await dbManager.waitForDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      const request = store.put({ key, value });
-
-      request.onsuccess = () => {
-        console.log(`设置配置成功: ${key}`);
-        resolve({ key, value });
-      };
-
-      request.onerror = () => {
-        console.error(`设置配置失败:`, request.error);
-        reject(request.error);
-      };
-    });
+    await dbManager.create('settings', { key, value });
+    return { key, value };
   },
 
   // 获取配置
   async get(key: string): Promise<any> {
-    const db = await dbManager.waitForDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readonly');
-      const store = transaction.objectStore('settings');
-      const request = store.get(key);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-
-      request.onerror = () => {
-        console.error(`获取配置失败:`, request.error);
-        reject(request.error);
-      };
-    });
+    return dbManager.get('settings', key);
   },
 
   // 更新配置
   async update(key: string, value: any): Promise<boolean> {
-    const db = await dbManager.waitForDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      const request = store.put({ key, value });
-
-      request.onsuccess = () => {
-        console.log(`更新配置成功: ${key}`);
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        console.error(`更新配置失败:`, request.error);
-        reject(request.error);
-      };
-    });
+    return dbManager.update('settings', key, { key, value });
   },
 
   // 删除配置
   async delete(key: string): Promise<boolean> {
-    const db = await dbManager.waitForDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      const request = store.delete(key);
-
-      request.onsuccess = () => {
-        console.log(`删除配置成功: ${key}`);
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        console.error(`删除配置失败:`, request.error);
-        reject(request.error);
-      };
-    });
+    return dbManager.delete('settings', key);
   },
 
   // 获取所有配置

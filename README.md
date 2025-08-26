@@ -128,12 +128,18 @@ The script will:
 4. **Create Release**: A new GitHub Release is created with `package.zip`
 5. **Update Bazaar**: The release is available for users to download
 
+## 💾 Data Storage
+- Uses **SQLite (sql.js)** under the hood. No IndexedDB required.
+- Database file path in Siyuan workspace: `data/plugins/siyuan-plugin-taskmap/taskmap.sqlite`.
+- The wasm runtime `sql-wasm.wasm` is included in the build output; the plugin loads it from the plugin root.
+- When Siyuan WebDAV sync is enabled, the plugin directory (and your DB file) will be synced unless excluded.
+
 ## 🏗️ Architecture
 
 ### Tech Stack
 - **Frontend**: Vue 3 + TypeScript + Element Plus
 - **Build Tool**: Vite
-- **Data Storage**: IndexedDB
+- **Data Storage**: SQLite (sql.js)
 - **State Management**: Vue 3 Composition API
 - **Styling**: SCSS + CSS Variables for theming
 
@@ -149,7 +155,7 @@ src/
 ├── types/              # TypeScript type definitions
 ├── utils/              # Utility functions
 │   ├── dbManager.ts    # Database operations
-│   ├── indexedDB.ts    # IndexedDB wrapper
+│   ├── sqlite.ts       # SQLite wrapper (sql.js)
 │   └── ...
 └── main.ts             # Entry point
 ```

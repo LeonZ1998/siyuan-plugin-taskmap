@@ -79,6 +79,10 @@ export default defineConfig(({
             src: "./src/i18n/**",
             dest: "./i18n/",
           },
+          {
+            src: "./node_modules/sql.js/dist/sql-wasm.wasm",
+            dest: "./",
+          },
         ],
       }),
     ],

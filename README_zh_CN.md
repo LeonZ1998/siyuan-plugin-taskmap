@@ -121,19 +121,23 @@ scripts\release.bat 1.0.1
 - 推送到 GitHub
 - 触发自动构建和发布
 
-### 发布工作流
-1. **创建标签**: 脚本创建类似 `v1.0.1` 的标签
-2. **推送到 GitHub**: 标签推送触发 GitHub Actions
-3. **自动构建**: GitHub Actions 构建项目
-4. **创建发布**: 创建新的 GitHub Release 并包含 `package.zip`
-5. **更新集市**: 发布可供用户下载
+### 发布到集市
+- 构建后在仓库创建 Release，上传 `package.zip`。
+- 首次上架到集市按官方模板提交插件信息（包含仓库地址与下载链接）。
+- 后续每次提升版本并发布 Release，集市会自动发现更新。
+
+## 💾 数据存储
+- 使用 **SQLite (sql.js)** 存储数据，不再依赖 IndexedDB。
+- 数据库文件存放在工作空间：`data/plugins/siyuan-plugin-taskmap/taskmap.sqlite`。
+- 构建产物包含 `sql-wasm.wasm`，插件从插件根目录加载。
+- 使用 WebDAV 同步时，插件目录（含数据库）会随工作空间同步，除非被忽略。
 
 ## 🏗️ 架构
 
 ### 技术栈
 - **前端**: Vue 3 + TypeScript + Element Plus
 - **构建工具**: Vite
-- **数据存储**: IndexedDB
+- **数据存储**: SQLite (sql.js)
 - **状态管理**: Vue 3 Composition API
 - **样式**: SCSS + CSS 变量主题
 
@@ -149,7 +153,7 @@ src/
 ├── types/              # TypeScript 类型定义
 ├── utils/              # 工具函数
 │   ├── dbManager.ts    # 数据库操作
-│   ├── indexedDB.ts    # IndexedDB 包装器
+│   ├── sqlite.ts       # SQLite 包装器（sql.js）
 │   └── ...
 └── main.ts             # 入口文件
 ```
