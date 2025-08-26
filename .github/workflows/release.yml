@@ -12,50 +12,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install Node.js
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           registry-url: "https://registry.npmjs.org"
 
-      # Install pnpm
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        id: pnpm-install
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 8
-          run_install: false
+          run_install: true
 
-      # Get pnpm store directory
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      # Setup pnpm cache
-      - name: Setup pnpm cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      # Install dependencies
-      - name: Install dependencies
-        run: pnpm install
-
-      # Build for production
       - name: Build for production
         run: pnpm build
 
-      # Verify package.zip exists
       - name: Verify package.zip
         run: |
           if [ ! -f "package.zip" ]; then
@@ -66,7 +40,6 @@ jobs:
           echo "✅ package.zip found"
           ls -lh package.zip
 
-      # Create Release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
