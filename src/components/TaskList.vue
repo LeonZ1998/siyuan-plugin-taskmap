@@ -17,6 +17,7 @@
           :task="data"
           :show-project-name="showProjectName"
           :all-projects="allProjects"
+          :indent="data.parentId && visibleIdSet.has(String(data.parentId))"
           @refresh="$emit('refresh')"
         />
       </template>
@@ -31,6 +32,7 @@
 import TaskCard from './TaskCard.vue'
 import { ElTree } from 'element-plus'
 import { eventBus } from '@/utils/eventBus'
+import { computed } from 'vue'
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
   showProjectName: { type: Boolean, default: true },
@@ -38,6 +40,20 @@ const props = defineProps({
   showArrow: { type: Boolean, default: true }
 })
 const treeProps = { children: 'subTasks', label: 'name' }
+
+// 收集当前渲染树中的所有任务ID，用于决定是否需要缩进
+function collectIds(list: any[], set: Set<string>) {
+  for (const it of list as any[]) {
+    if (it && it.id != null) set.add(String(it.id))
+    if (it && Array.isArray(it.subTasks) && it.subTasks.length > 0) collectIds(it.subTasks, set)
+  }
+}
+const visibleIdSet = computed(() => {
+  const s = new Set<string>()
+  collectIds(props.tasks as any[], s)
+  return s
+})
+
 function onNodeDrop(...args: any[]) {
   // 透传事件，父组件可监听
 }

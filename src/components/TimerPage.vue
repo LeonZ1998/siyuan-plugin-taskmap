@@ -240,7 +240,8 @@ onMounted(() => {
       saveTimerState();
     }, 1000);
   }
-  eventBus.on && eventBus.on('start-task-timer', (taskId: string) => {
+  // 只监听在 App.vue 转发过来的专用事件，避免潜在循环
+  eventBus.on && eventBus.on('start-task-timer-activate', (taskId: string) => {
     if (selectedTaskId.value !== taskId) {
       selectedTaskId.value = taskId
     }

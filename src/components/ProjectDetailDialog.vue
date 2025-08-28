@@ -226,6 +226,8 @@ const projectTypes = [
   { value: ProjectType.SOCIAL_RELATIONSHIPS, label: '人际社群' },
 ]
 const tasks = ref<any[]>([])
+const unfinishedTree = ref<any[]>([])
+const finishedList = ref<any[]>([])
 const allProjects = ref<any[]>([])
 
 const editableProjectName = ref(props.project?.name || '')
@@ -290,10 +292,45 @@ const loadProjectTasks = async () => {
     }
     sortSiblings(roots)
 
-    tasks.value = roots
+    // 5) 拆分：已完成任务单独列出（从未完成树中移除所有已完成节点）
+    const finished: any[] = []
+    function pruneCompleted(node: any): any | null {
+      if (node.isCompleted) {
+        // 收集为扁平已完成项（不保留子任务）
+        const { subTasks, ...shallow } = node
+        finished.push({ ...shallow, subTasks: [] })
+        return null
+      }
+      if (Array.isArray(node.subTasks) && node.subTasks.length > 0) {
+        const kept: any[] = []
+        for (const child of node.subTasks) {
+          const pruned = pruneCompleted(child)
+          if (pruned) kept.push(pruned)
+        }
+        node.subTasks = kept
+      }
+      return node
+    }
+    const unfinishedRoots: any[] = []
+    for (const r of roots) {
+      const pruned = pruneCompleted(r)
+      if (pruned) unfinishedRoots.push(pruned)
+    }
+    // 对已完成列表也做排序
+    finished.sort((a, b) => {
+      const ao = (a.order ?? 0) - (b.order ?? 0)
+      if (ao !== 0) return ao
+      return (a.createdAt ?? 0) - (b.createdAt ?? 0)
+    })
+
+    tasks.value = unfinishedRoots
+    unfinishedTree.value = unfinishedRoots
+    finishedList.value = finished
   } catch (error) {
     // 加载项目任务失败
     tasks.value = []
+    unfinishedTree.value = []
+    finishedList.value = []
   }
 }
 
@@ -314,20 +351,27 @@ const formatDaysLeft = () => {
 // 目标计时：当前项目所有任务计时的总和
 const totalProjectDuration = ref(0)
 
+function collectIdsFromTree(list: any[], sink: Set<string>) {
+  for (const n of list) {
+    if (n && n.id != null) sink.add(String(n.id))
+    if (n && Array.isArray(n.subTasks) && n.subTasks.length > 0) collectIdsFromTree(n.subTasks, sink)
+  }
+}
+
 async function loadProjectTotalDuration() {
   if (!props.project?.id) return
-  // 获取该项目所有任务ID
-  const taskIds = tasks.value.map(t => t.id)
-  // 查询所有计时记录
+  const ids = new Set<string>()
+  collectIdsFromTree(unfinishedTree.value, ids)
+  for (const f of finishedList.value) ids.add(String(f.id))
+  const taskIds = Array.from(ids)
   const allRecords = await timerRecordDB.getAll()
-  // 过滤属于本项目的任务
   const projectRecords = allRecords.filter(r => taskIds.includes(r.taskId))
-  // 累加 duration
   totalProjectDuration.value = projectRecords.reduce((sum, r) => sum + (r.duration || 0), 0)
 }
 
 onMounted(loadProjectTotalDuration)
-watch([tasks], loadProjectTotalDuration)
+watch([unfinishedTree, finishedList], loadProjectTotalDuration)
+eventBus.on('global-refresh', loadProjectTotalDuration)
 
 // 复用TaskPage的日期格式化
 const formatDate = (timestamp: number) => {
@@ -398,8 +442,16 @@ const formatDeadlineDate = () => {
 }
 
 // 计算目标进度百分比
-const finishedCount = computed(() => tasks.value.filter(t => t.isCompleted).length)
-const totalCount = computed(() => tasks.value.length)
+function countTree(list: any[]): number {
+  let n = 0
+  for (const it of list) {
+    n += 1
+    if (Array.isArray(it.subTasks) && it.subTasks.length > 0) n += countTree(it.subTasks)
+  }
+  return n
+}
+const finishedCount = computed(() => finishedList.value.length)
+const totalCount = computed(() => countTree(unfinishedTree.value) + finishedList.value.length)
 const progressPercent = computed(() => {
   const total = totalCount.value
   const completed = finishedCount.value
@@ -541,8 +593,8 @@ const totalTasks = computed(() => (props.allTasks as any[]).filter(t => String((
 const completedTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id) && ((t as any).status === 'completed' || (t as any).isCompleted)).length)
 
 // 项目任务的计算属性
-const projectUnfinishedTasks = computed(() => tasks.value.filter(t => !t.isCompleted))
-const projectFinishedTasks = computed(() => tasks.value.filter(t => t.isCompleted))
+const projectUnfinishedTasks = computed(() => unfinishedTree.value)
+const projectFinishedTasks = computed(() => finishedList.value)
 
 // 修改 formatTotalTime 用于秒数
 function formatTotalTime(sec: number) {

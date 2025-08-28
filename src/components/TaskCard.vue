@@ -1,5 +1,5 @@
 <template>
-  <div class="task-card" :class="{ 'is-subtask': !!task.parentId, 'is-completed': task.isCompleted }">
+  <div class="task-card" :class="{ 'is-subtask': !!props.indent, 'is-completed': task.isCompleted }">
     <div class="task-left">
       <el-checkbox class="task-checkbox" :model-value="task.isCompleted" @change="onCheckTask" />
     </div>
@@ -114,7 +114,7 @@ import { Delete } from '@element-plus/icons-vue'
  * @prop showProjectName 是否显示项目名
  * @prop allProjects 所有项目列表
  */
-const props = defineProps<{ task: any, showProjectName?: boolean, allProjects?: any[] }>()
+const props = defineProps<{ task: any, showProjectName?: boolean, allProjects?: any[], indent?: boolean }>()
 const emit = defineEmits(['refresh'])
 const formatShortDate = (timestamp: number | string) => {
   const date = new Date(timestamp)

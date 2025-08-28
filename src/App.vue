@@ -191,6 +191,15 @@ onMounted(() => {
   eventBus.on('global-refresh', handleRefresh)
   loadProjects()
   loadTasks()
+  // 跨页面启动计时：转发到计时页专用事件，避免事件自触发循环
+  eventBus.on('start-task-timer', (taskId: string) => {
+    if (currentPage.value !== 'timer') {
+      currentPage.value = 'timer'
+      nextTick(() => eventBus.emit('start-task-timer-activate', taskId))
+    } else {
+      eventBus.emit('start-task-timer-activate', taskId)
+    }
+  })
 })
 onBeforeUnmount(() => {
   eventBus.off('global-refresh', handleRefresh)
