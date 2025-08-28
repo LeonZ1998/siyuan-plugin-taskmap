@@ -14,6 +14,7 @@ import ElementPlus from 'element-plus'
 import App from './App.vue'
 import { useTheme } from './composables/useTheme'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import { dbUtils } from '@/utils/dbManager'
 
 let PluginInfo = {
   version: '',
@@ -57,6 +58,13 @@ export default class TaskMapPlugin extends Plugin {
       this.isElectron = true
     } catch (err) {
       this.isElectron = false
+    }
+
+    // 确保在内存中加载JSON数据
+    try {
+      await dbUtils.getStatus()
+    } catch (e) {
+      console.warn('DB init warning:', e)
     }
 
     console.log('TaskMap Plugin loaded')
@@ -115,17 +123,12 @@ export default class TaskMapPlugin extends Plugin {
     });
   }
 
-  onunload() {
-    console.log('TaskMap Plugin unloaded')
-    
-    // 清理所有Vue应用实例
-    const docks = document.querySelectorAll('[data-type="taskmap_dock"]')
-    docks.forEach((dockElement) => {
-      const dock = (dockElement as any).__vue_app__
-      if (dock && dock.unmount) {
-        dock.unmount()
-      }
-    })
+  async onunload() {
+    try {
+      await dbUtils.save()
+    } catch (e) {
+      console.warn('Save on unload warning:', e)
+    }
   }
 
   // 显示菜单

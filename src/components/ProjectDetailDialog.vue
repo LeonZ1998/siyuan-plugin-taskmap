@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="modelValue"
     @update:model-value="val => $emit('update:modelValue', val)"
-    width="580px"
+    width="720px"
     top="5vh"
     :show-close="false"
     class="project-detail-dialog"
@@ -245,16 +245,52 @@ const loadProjectTasks = async () => {
   try {
     const projectId = props.project.id
     const projectTasks = await taskDB.getByProject(projectId)
-    tasks.value = projectTasks.map(task => ({
+
+    // 1) 预处理：标准化节点属性
+    const nodes = projectTasks.map(task => ({
       ...task,
       isCompleted: task.status === 'completed',
-      hasChildren: task.subTasks && task.subTasks.length > 0,
       projectName: '',
       expanded: false,
       startDate: task.startDate,
       endDate: task.endDate,
-      dueDate: task.dueDate
+      dueDate: task.dueDate,
+      subTasks: [] as any[],
     }))
+
+    // 2) 建立字典方便引用
+    const idToNode = new Map<string, any>()
+    for (const n of nodes) {
+      idToNode.set(String(n.id), n)
+    }
+
+    // 3) 组装父子关系
+    const roots: any[] = []
+    for (const n of nodes) {
+      const parentId = n.parentId
+      if (parentId && idToNode.has(String(parentId))) {
+        const parent = idToNode.get(String(parentId))
+        parent.subTasks.push(n)
+      } else {
+        roots.push(n)
+      }
+    }
+
+    // 4) 递归排序（按 order 优先，其次 createdAt）
+    function sortSiblings(arr: any[]) {
+      arr.sort((a, b) => {
+        const ao = (a.order ?? 0) - (b.order ?? 0)
+        if (ao !== 0) return ao
+        const ac = (a.createdAt ?? 0) - (b.createdAt ?? 0)
+        return ac
+      })
+      for (const it of arr) {
+        if (Array.isArray(it.subTasks) && it.subTasks.length > 0) sortSiblings(it.subTasks)
+      }
+    }
+    sortSiblings(roots)
+
+    tasks.value = roots
   } catch (error) {
     // 加载项目任务失败
     tasks.value = []

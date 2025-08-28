@@ -1,491 +1,69 @@
-// 数据库管理器实例
-// 配置各种数据结构的存储和索引
+import { memoryStore } from './storage'
 
-import { DBConfig } from './indexedDB';
-import { SQLiteManager } from './sqlite';
-import type { Project } from '../types/project';
-import { 
-  generateProjectId, 
-  generateTaskId, 
-  generateCategoryId, 
-  generateTagId, 
-  generatePrefixedSiyuanId
-} from './idGenerator';
+export const dbManager = undefined as any
 
-// 数据库配置
-const dbConfig: DBConfig = {
-  name: 'TaskFlowDB',
-  version: 3,
-  stores: [
-    {
-      name: 'projects',
-      keyPath: 'id',
-      indexes: [
-        { name: 'status', keyPath: 'status' },
-        { name: 'priority', keyPath: 'priority' },
-        { name: 'startDate', keyPath: 'startDate' },
-        { name: 'dueDate', keyPath: 'dueDate' },
-        { name: 'category', keyPath: 'category' }
-      ]
-    },
-    {
-      name: 'tasks',
-      keyPath: 'id',
-      indexes: [
-        { name: 'projectId', keyPath: 'projectId' },
-        { name: 'parentId', keyPath: 'parentId' },
-        { name: 'status', keyPath: 'status' },
-        { name: 'priority', keyPath: 'priority' },
-        { name: 'dueDate', keyPath: 'dueDate' },
-        { name: 'referenceNote', keyPath: 'referenceNote' }
-      ]
-    },
-    {
-      name: 'categories',
-      keyPath: 'id',
-      indexes: [
-        { name: 'name', keyPath: 'name' },
-        { name: 'type', keyPath: 'type' }
-      ]
-    },
-    {
-      name: 'tags',
-      keyPath: 'id',
-      indexes: [
-        { name: 'name', keyPath: 'name' },
-        { name: 'color', keyPath: 'color' }
-      ]
-    },
-    {
-      name: 'settings',
-      keyPath: 'key',
-      indexes: [
-        { name: 'category', keyPath: 'category' }
-      ]
-    },
-    {
-      name: 'timerRecords',
-      keyPath: 'id',
-      indexes: [
-        { name: 'taskId', keyPath: 'taskId' },
-        { name: 'startTime', keyPath: 'startTime' },
-        { name: 'endTime', keyPath: 'endTime' },
-        { name: 'status', keyPath: 'status' }
-      ]
-    },
-    {
-      name: 'habits',
-      keyPath: 'id',
-      indexes: [
-        { name: 'name', keyPath: 'name' },
-        { name: 'frequency', keyPath: 'frequency' }
-      ]
-    }
-  ]
-};
-
-// 创建数据库管理器实例
-export const dbManager = new SQLiteManager(dbConfig);
-
-// 项目相关操作
 export const projectDB = {
-  // 创建项目
-  async create(project: Omit<Project, 'id'>): Promise<Project> {
-    const projectWithId = {
-      ...project,
-      id: generateProjectId()
-    };
-    return dbManager.create('projects', projectWithId);
-  },
+  async create(project: any) { await memoryStore.load(); return memoryStore.createProject(project) },
+  async get(id: string) { await memoryStore.load(); return memoryStore.getProject(id) },
+  async getAll() { await memoryStore.load(); return memoryStore.listProjects() },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateProject(id, data) },
+  async delete(id: string) { await memoryStore.load(); const ok = await memoryStore.deleteProject(id); await memoryStore.deleteTasksByProject(id); return ok },
+}
 
-  // 获取项目
-  async get(id: string): Promise<Project | null> {
-    return dbManager.get<Project>('projects', id);
-  },
-
-  // 获取所有项目
-  async getAll(): Promise<Project[]> {
-    return dbManager.getAll<Project>('projects');
-  },
-
-  // 查询项目
-  async query(params?: any): Promise<any> {
-    return dbManager.query<Project>('projects', params);
-  },
-
-  // 更新项目
-  async update(id: string, data: Partial<Project>): Promise<boolean> {
-    return dbManager.update('projects', id, data);
-  },
-
-  // 删除项目
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('projects', id);
-  },
-
-  // 根据状态查询项目
-  async getByStatus(status: string): Promise<Project[]> {
-    return dbManager.queryByIndex<Project>('projects', 'status', status);
-  },
-
-  // 根据优先级查询项目
-  async getByPriority(priority: string): Promise<Project[]> {
-    return dbManager.queryByIndex<Project>('projects', 'priority', priority);
-  },
-
-  // 根据分类查询项目
-  async getByCategory(category: string): Promise<Project[]> {
-    return dbManager.queryByIndex<Project>('projects', 'category', category);
-  },
-
-  // 获取即将到期的项目
-  async getUpcoming(): Promise<Project[]> {
-    const now = new Date();
-    const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
-    return dbManager.queryByIndexRange<Project>(
-      'projects',
-      'dueDate',
-      { lower: now.toISOString(), upper: thirtyDaysLater.toISOString() }
-    );
-  },
-
-  // 获取过期项目
-  async getOverdue(): Promise<Project[]> {
-    const now = new Date();
-    
-    return dbManager.queryByIndexRange<Project>(
-      'projects',
-      'dueDate',
-      { upper: now.toISOString() }
-    );
-  },
-
-  // 导出项目数据
-  async export(): Promise<string> {
-    return dbManager.exportData('projects');
-  },
-
-  // 导入项目数据
-  async import(data: string): Promise<boolean> {
-    return dbManager.importData('projects', data);
-  }
-};
-
-// 任务相关操作
 export const taskDB = {
-  // 创建任务
-  async create(task: any): Promise<any> {
-    const taskWithId = {
-      ...task,
-      id: generateTaskId()
-    };
-    return dbManager.create('tasks', taskWithId);
-  },
+  async create(task: any) { await memoryStore.load(); return memoryStore.createTask(task) },
+  async get(id: string) { await memoryStore.load(); return memoryStore.getTask(id) },
+  async getAll() { await memoryStore.load(); return memoryStore.listTasks() },
+  async getByProject(projectId: string) { await memoryStore.load(); return memoryStore.listTasks().filter(t => t.projectId === projectId) },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateTask(id, data) },
+  async delete(id: string) { await memoryStore.load(); return memoryStore.deleteTask(id) },
+}
 
-  // 获取任务
-  async get(id: string): Promise<any> {
-    return dbManager.get('tasks', id);
-  },
-
-  // 获取所有任务
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('tasks');
-  },
-
-  // 根据项目ID获取任务
-  async getByProject(projectId: string): Promise<any[]> {
-    return dbManager.queryByIndex('tasks', 'projectId', projectId);
-  },
-
-  // 根据父任务ID获取子任务
-  async getByParentId(parentId: string): Promise<any[]> {
-    return dbManager.queryByIndex('tasks', 'parentId', parentId);
-  },
-
-  // 根据状态获取任务
-  async getByStatus(status: string): Promise<any[]> {
-    return dbManager.queryByIndex('tasks', 'status', status);
-  },
-
-  // 根据参考笔记获取任务
-  async getByReferenceNote(referenceNote: string[]): Promise<any[]> {
-    return dbManager.queryByIndex('tasks', 'referenceNote', referenceNote);
-  },
-
-  // 更新任务
-  async update(id: string, data: any): Promise<boolean> {
-    return dbManager.update('tasks', id, data);
-  },
-
-  // 删除任务
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('tasks', id);
-  },
-
-  // 批量删除项目相关任务
-  async deleteByProject(projectId: string): Promise<boolean> {
-    const tasks = await this.getByProject(projectId);
-    const taskIds = tasks.map(task => task.id);
-    return dbManager.deleteMany('tasks', taskIds);
-  }
-};
-
-// 分类相关操作
 export const categoryDB = {
-  // 创建分类
-  async create(category: any): Promise<any> {
-    const categoryWithId = {
-      ...category,
-      id: generateCategoryId()
-    };
-    return dbManager.create('categories', categoryWithId);
-  },
+  async create(c: any) { await memoryStore.load(); return memoryStore.createCategory(c) },
+  async getAll() { await memoryStore.load(); return memoryStore.listCategories() },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateCategory(id, data) },
+  async delete(id: string) { await memoryStore.load(); return memoryStore.deleteCategory(id) },
+}
 
-  // 获取所有分类
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('categories');
-  },
-
-  // 根据类型获取分类
-  async getByType(type: string): Promise<any[]> {
-    return dbManager.queryByIndex('categories', 'type', type);
-  },
-
-  // 更新分类
-  async update(id: string, data: any): Promise<boolean> {
-    return dbManager.update('categories', id, data);
-  },
-
-  // 删除分类
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('categories', id);
-  }
-};
-
-// 标签相关操作
 export const tagDB = {
-  // 创建标签
-  async create(tag: any): Promise<any> {
-    const tagWithId = {
-      ...tag,
-      id: generateTagId()
-    };
-    return dbManager.create('tags', tagWithId);
-  },
+  async create(t: any) { await memoryStore.load(); return memoryStore.createTag(t) },
+  async getAll() { await memoryStore.load(); return memoryStore.listTags() },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateTag(id, data) },
+  async delete(id: string) { await memoryStore.load(); return memoryStore.deleteTag(id) },
+}
 
-  // 获取所有标签
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('tags');
-  },
-
-  // 根据颜色获取标签
-  async getByColor(color: string): Promise<any[]> {
-    return dbManager.queryByIndex('tags', 'color', color);
-  },
-
-  // 更新标签
-  async update(id: string, data: any): Promise<boolean> {
-    return dbManager.update('tags', id, data);
-  },
-
-  // 删除标签
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('tags', id);
-  }
-};
-
-// 设置相关操作
 export const settingsDB = {
-  // 设置配置
-  async set(key: string, value: any): Promise<any> {
-    await dbManager.create('settings', { key, value });
-    return { key, value };
-  },
+  async set(key: string, value: any) { await memoryStore.load(); return memoryStore.setSetting(key, value) },
+  async get(key: string) { await memoryStore.load(); return memoryStore.getSetting(key) },
+  async update(key: string, value: any) { await memoryStore.load(); return memoryStore.setSetting(key, value) },
+  async delete(key: string) { await memoryStore.load(); return memoryStore.deleteSetting(key) },
+  async getAll() { await memoryStore.load(); const s = (await memoryStore as any); return Object.entries((s as any).data?.settings || {}) },
+}
 
-  // 获取配置
-  async get(key: string): Promise<any> {
-    return dbManager.get('settings', key);
-  },
-
-  // 更新配置
-  async update(key: string, value: any): Promise<boolean> {
-    return dbManager.update('settings', key, { key, value });
-  },
-
-  // 删除配置
-  async delete(key: string): Promise<boolean> {
-    return dbManager.delete('settings', key);
-  },
-
-  // 获取所有配置
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('settings');
-  },
-
-  // 根据分类获取配置
-  async getByCategory(category: string): Promise<any[]> {
-    return dbManager.queryByIndex('settings', 'category', category);
-  }
-};
-
-// 任务计时记录相关操作
 export const timerRecordDB = {
-  // 创建计时记录
-  async create(record: any): Promise<any> {
-    const recordWithId = {
-      ...record,
-      id: record.id || generatePrefixedSiyuanId('ttm')
-    };
-    return dbManager.create('timerRecords', recordWithId);
-  },
+  async create(r: any) { await memoryStore.load(); return memoryStore.createTimerRecord(r) },
+  async get(id: string) { await memoryStore.load(); return memoryStore.listTimerRecords().find(r => r.id === id) || null },
+  async getAll() { await memoryStore.load(); return memoryStore.listTimerRecords() },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateTimerRecord(id, data) },
+  async delete(id: string) { await memoryStore.load(); return memoryStore.deleteTimerRecord(id) },
+  async clear() { await memoryStore.load(); return memoryStore.clearTimerRecords() },
+}
 
-  // 获取计时记录
-  async get(id: string): Promise<any> {
-    return dbManager.get('timerRecords', id);
-  },
-
-  // 获取所有计时记录
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('timerRecords');
-  },
-
-  // 更新计时记录
-  async update(id: string, data: any): Promise<boolean> {
-    return dbManager.update('timerRecords', id, data);
-  },
-
-  // 删除计时记录
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('timerRecords', id);
-  },
-
-  // 清空所有计时记录
-  async clear(): Promise<void> {
-    return dbManager.clear('timerRecords');
-  }
-};
-
-// 习惯相关操作
 export const habitDB = {
-  // 创建习惯
-  async create(habit: any): Promise<any> {
-    const habitWithId = {
-      ...habit,
-      id: generatePrefixedSiyuanId('habit')
-    };
-    return dbManager.create('habits', habitWithId);
-  },
+  async create(h: any) { await memoryStore.load(); return memoryStore.createHabit(h) },
+  async get(id: string) { await memoryStore.load(); return memoryStore.listHabits().find(h => h.id === id) || null },
+  async getAll() { await memoryStore.load(); return memoryStore.listHabits() },
+  async update(id: string, data: any) { await memoryStore.load(); return memoryStore.updateHabit(id, data) },
+  async delete(id: string) { await memoryStore.load(); return memoryStore.deleteHabit(id) },
+}
 
-  // 获取习惯
-  async get(id: string): Promise<any> {
-    return dbManager.get('habits', id);
-  },
-
-  // 获取所有习惯
-  async getAll(): Promise<any[]> {
-    return dbManager.getAll('habits');
-  },
-
-  // 更新习惯
-  async update(id: string, data: any): Promise<boolean> {
-    return dbManager.update('habits', id, data);
-  },
-
-  // 删除习惯
-  async delete(id: string): Promise<boolean> {
-    return dbManager.delete('habits', id);
-  }
-};
-
-// 数据库工具函数
 export const dbUtils = {
-  // 获取数据库状态
-  getStatus() {
-    return dbManager.getStatus();
-  },
+  async getStatus() { await memoryStore.load(); return { initialized: true, storage: 'json' } },
+  async save() { await memoryStore.load(); await memoryStore.save(); return true },
+  close() { /* no-op for memory */ },
+}
 
-  // 关闭数据库连接
-  close() {
-    dbManager.close();
-  },
-
-  // 清空所有数据
-  async clearAll() {
-    await dbManager.clear('projects');
-    await dbManager.clear('tasks');
-    await dbManager.clear('categories');
-    await dbManager.clear('tags');
-    await dbManager.clear('settings');
-  },
-
-  // 导出所有数据
-  async exportAll() {
-    const projects = await dbManager.exportData('projects');
-    const tasks = await dbManager.exportData('tasks');
-    const categories = await dbManager.exportData('categories');
-    const tags = await dbManager.exportData('tags');
-    const settings = await dbManager.exportData('settings');
-
-    return {
-      projects,
-      tasks,
-      categories,
-      tags,
-      settings,
-      exportTime: new Date().toISOString()
-    };
-  },
-
-  // 导入所有数据
-  async importAll(data: any) {
-    const results = {
-      projects: false,
-      tasks: false,
-      categories: false,
-      tags: false,
-      settings: false
-    };
-
-    if (data.projects) {
-      results.projects = await dbManager.importData('projects', data.projects);
-    }
-    if (data.tasks) {
-      results.tasks = await dbManager.importData('tasks', data.tasks);
-    }
-    if (data.categories) {
-      results.categories = await dbManager.importData('categories', data.categories);
-    }
-    if (data.tags) {
-      results.tags = await dbManager.importData('tags', data.tags);
-    }
-    if (data.settings) {
-      results.settings = await dbManager.importData('settings', data.settings);
-    }
-
-    return results;
-  },
-
-  // 获取统计信息
-  async getStats() {
-    const projectCount = await dbManager.count('projects');
-    const taskCount = await dbManager.count('tasks');
-    const categoryCount = await dbManager.count('categories');
-    const tagCount = await dbManager.count('tags');
-    const settingCount = await dbManager.count('settings');
-
-    return {
-      projects: projectCount,
-      tasks: taskCount,
-      categories: categoryCount,
-      tags: tagCount,
-      settings: settingCount,
-      total: projectCount + taskCount + categoryCount + tagCount + settingCount
-    };
-  }
-};
-
-// 默认导出
 export default {
   dbManager,
   projectDB,
@@ -493,5 +71,5 @@ export default {
   categoryDB,
   tagDB,
   settingsDB,
-  dbUtils
-}; 
+  dbUtils,
+} 

@@ -206,6 +206,24 @@ const displayDate = computed(() => {
   border-radius: 14px;
   padding: 8px 8px 0 8px;
 }
+.date-panel-calendar :deep(.el-calendar__header) {
+  padding: 6px 8px;
+}
+.date-panel-calendar :deep(.el-calendar__body) {
+  padding: 6px 8px;
+}
+.date-panel-calendar :deep(.el-calendar-table) {
+  table-layout: fixed;
+}
+.date-panel-calendar :deep(.el-calendar-table td) {
+  padding: 0;
+}
+.date-panel-calendar :deep(.el-calendar-table .el-calendar-day) {
+  height: 26px;
+  line-height: 26px;
+  padding: 0 4px;
+  border-radius: 6px;
+}
 .date-panel-range-panel {
   background: #23232a;
   border-radius: 14px;

@@ -106,6 +106,14 @@ function openDatePanel() {
   if (!showDatePanel.value) showDatePanel.value = true
 }
 function closeDatePanel() {
+  // 清除日期选择并关闭面板
+  datePanelValue.value = {
+    mode: 'single',
+    singleDate: null as any,
+    useTargetTime: false,
+    rangeStart: null as any,
+    rangeEnd: null as any,
+  }
   showDatePanel.value = false
 }
 async function onSaveTask() {
@@ -116,17 +124,19 @@ async function onSaveTask() {
   // 获取日期数据
   let startDate = null, endDate = null, dueDate = null
   
-  // 从当前状态获取日期数据
-  if (datePanelValue.value.mode === 'single' && datePanelValue.value.singleDate) {
-    if (datePanelValue.value.singleDate instanceof Date) {
-      const t = datePanelValue.value.singleDate.getTime()
-      startDate = endDate = dueDate = t
-    }
-  } else if (datePanelValue.value.mode === 'range' && datePanelValue.value.rangeStart && datePanelValue.value.rangeEnd) {
-    if (datePanelValue.value.rangeStart instanceof Date && datePanelValue.value.rangeEnd instanceof Date) {
-      startDate = datePanelValue.value.rangeStart.getTime()
-      endDate = datePanelValue.value.rangeEnd.getTime()
-      dueDate = endDate
+  // 仅当日期面板打开时才读取/保存日期；未打开或已清除则保存为空
+  if (showDatePanel.value) {
+    if (datePanelValue.value.mode === 'single' && datePanelValue.value.singleDate) {
+      if (datePanelValue.value.singleDate instanceof Date) {
+        const t = datePanelValue.value.singleDate.getTime()
+        startDate = endDate = dueDate = t
+      }
+    } else if (datePanelValue.value.mode === 'range' && datePanelValue.value.rangeStart && datePanelValue.value.rangeEnd) {
+      if (datePanelValue.value.rangeStart instanceof Date && datePanelValue.value.rangeEnd instanceof Date) {
+        startDate = datePanelValue.value.rangeStart.getTime()
+        endDate = datePanelValue.value.rangeEnd.getTime()
+        dueDate = endDate
+      }
     }
   }
   if (props.taskId) {

@@ -25,6 +25,18 @@
         <span v-else class="task-date">无日期</span>
       </div>
     </div>
+    <div class="task-actions">
+      <el-button
+        type="danger"
+        size="small"
+        circle
+        class="delete-btn"
+        @click="onDeleteTask"
+        title="删除任务"
+      >
+        <el-icon><Delete /></el-icon>
+      </el-button>
+    </div>
     <div class="task-divider"></div>
     <Teleport to="body">
       <div
@@ -93,7 +105,8 @@ import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { eventBus } from '@/utils/eventBus'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElButton, ElIcon } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 
 /**
  * 任务卡片组件
@@ -256,10 +269,25 @@ async function onStartTimer() {
 }
 
 async function onDeleteTask() {
-  await taskDB.delete(props.task.id)
-  emit('refresh')
-  eventBus.emit('global-refresh')
-  menuVisible.value = false
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个任务吗？删除后无法恢复。',
+      '删除任务',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'error',
+      }
+    )
+    
+    await taskDB.delete(props.task.id)
+    emit('refresh')
+    eventBus.emit('global-refresh')
+    menuVisible.value = false
+    ElMessage.success('任务已删除')
+  } catch (error) {
+    // 用户取消操作
+  }
 }
 
 const showTaskDetailPanel = ref(false)
@@ -386,6 +414,34 @@ async function onTaskDetailSaved() {
   font-weight: 500;
   box-shadow: 0 1px 4px #b0b0b022;
 }
+.task-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.task-card:hover .task-actions {
+  opacity: 1;
+}
+
+.delete-btn {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: rgba(245, 108, 108, 0.1) !important;
+  color: #f56c6c !important;
+  transition: all 0.2s !important;
+}
+
+.delete-btn:hover {
+  background: #f56c6c !important;
+  color: white !important;
+  transform: scale(1.1);
+}
+
 .task-divider {
   position: absolute;
   left: 0;
