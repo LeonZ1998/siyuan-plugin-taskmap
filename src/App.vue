@@ -241,14 +241,27 @@ onMounted(() => {
   eventBus.on('start-task-timer', (taskId: string) => {
     if (currentPage.value !== 'timer') {
       currentPage.value = 'timer'
-      nextTick(() => eventBus.emit('start-task-timer-activate', taskId))
+      
+      // 等待页面切换完成后再发送事件
+      setTimeout(() => {
+        try {
+          eventBus.emit('start-task-timer-activate', taskId)
+        } catch (error) {
+          console.error('[App] 发送 start-task-timer-activate 事件失败:', error)
+        }
+      }, 100) // 增加延迟，确保页面切换完成
     } else {
-      eventBus.emit('start-task-timer-activate', taskId)
+      try {
+        eventBus.emit('start-task-timer-activate', taskId)
+      } catch (error) {
+        console.error('[App] 发送 start-task-timer-activate 事件失败:', error)
+      }
     }
   })
 })
 onBeforeUnmount(() => {
   eventBus.off('global-refresh', handleRefresh)
+  eventBus.off('start-task-timer')
 })
 </script>
 

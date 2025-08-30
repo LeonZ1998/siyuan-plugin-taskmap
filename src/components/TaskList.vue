@@ -59,7 +59,12 @@ function onNodeDrop(...args: any[]) {
 }
 function onNodeContextMenu(event, data, node, comp) {
   event.preventDefault();
-  eventBus.emit('show-task-menu', { event, taskId: data.id });
+  
+  try {
+    eventBus.emit('show-task-menu', { event, taskId: data.id });
+  } catch (error) {
+    console.error('[TaskList] 发送 show-task-menu 事件失败:', error)
+  }
 }
 </script>
 

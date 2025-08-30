@@ -56,9 +56,8 @@ import { ElMessage } from 'element-plus';
 import { taskDB, timerRecordDB, projectDB } from '@/utils/dbManager';
 import FocusHistoryPage from './FocusHistoryPage.vue';
 import AddFocusRecordDialog from './AddFocusRecordDialog.vue';
-import { ref as vueRef } from 'vue';
 import { eventBus } from '@/utils/eventBus'
-const focusHistoryRef = vueRef();
+const focusHistoryRef = ref();
 
 const elapsedSeconds = ref(0);
 const isRunning = ref(false);
@@ -74,9 +73,7 @@ const totalPausedTime = ref(0);
 
 // 开始计时
 async function startTimer() {
-  console.log('[TimerPage] startTimer 被调用，selectedTask:', selectedTask.value)
   if (!selectedTask.value) {
-    console.log('[TimerPage] 没有选中的任务，无法开始计时')
     ElMessage.warning('请先选择一个任务');
     return;
   }
@@ -100,7 +97,6 @@ async function startTimer() {
     segments: [],
     status: 'running'
   };
-  console.log('[TimerPage] 创建了新的专注记录:', currentRecord.value)
   
   // 创建第一个片段
   segments.value = [{
@@ -115,7 +111,7 @@ async function startTimer() {
     saveTimerState();
   }, 1000);
   
-  ElMessage.success('开始专注');
+  ElMessage.success(`开始专注：${selectedTask.value.name}`);
 }
 
 // 暂停计时
@@ -179,17 +175,14 @@ const selectedTaskId = ref<string | null>(null);
 const selectedTask = computed(() => {
   // 在树形数据中查找选中的任务
   if (!selectedTaskId.value) {
-    console.log('[TimerPage] selectedTask: 没有选中的任务ID')
     return null;
   }
-  
-  console.log('[TimerPage] selectedTask: 查找任务ID:', selectedTaskId.value, '在树形数据中:', taskTreeData.value)
   
   // 递归查找任务
   const findTask = (nodes: any[]): any => {
     for (const node of nodes) {
-      if (node.id === selectedTaskId.value && node.type === 'task') {
-        console.log('[TimerPage] selectedTask: 找到任务:', node.task)
+      // 使用字符串比较，避免类型不匹配问题
+      if (String(node.id) === String(selectedTaskId.value) && node.type === 'task') {
         return node.task; // 返回实际的任务对象
       }
       if (node.children) {
@@ -200,16 +193,12 @@ const selectedTask = computed(() => {
     return null;
   };
   
-  const result = findTask(taskTreeData.value);
-  console.log('[TimerPage] selectedTask: 最终结果:', result)
-  return result;
+  return findTask(taskTreeData.value);
 });
 
 async function loadTasks() {
-  console.log('[TimerPage] loadTasks: 开始加载任务和项目数据')
   const allTasks = await taskDB.getAll();
   const allProjects = await projectDB.getAll();
-  console.log('[TimerPage] loadTasks: 获取到任务数量:', allTasks.length, '项目数量:', allProjects.length)
   
   // 构建树形数据结构
   const treeData = [];
@@ -307,7 +296,6 @@ async function loadTasks() {
   
   taskTreeData.value = treeData;
   tasks.value = allTasks;
-  console.log('[TimerPage] loadTasks: 树形数据构建完成:', treeData)
 }
 
 function onTaskChange() {
@@ -380,7 +368,6 @@ function saveTimerState() {
     elapsedSeconds: elapsedSeconds.value,
     lastUpdate: Date.now()
   };
-  console.log('[Timer] 保存状态', JSON.stringify(state));
   localStorage.setItem(TIMER_STATE_KEY, JSON.stringify(state));
 }
 
@@ -392,7 +379,6 @@ function restoreTimerState() {
   const state = JSON.parse(localStorage.getItem(TIMER_STATE_KEY) || '{}');
   if (state.selectedTaskId) {
     selectedTaskId.value = state.selectedTaskId;
-    console.log('[TimerPage] 恢复选中的任务ID:', state.selectedTaskId);
   }
   if (typeof state.startTime === 'number') startTime.value = state.startTime;
 
@@ -440,13 +426,7 @@ const statusText = computed(() => {
 
 
 async function endTimer() {
-  console.log('[TimerPage] endTimer 被调用')
-  console.log('[TimerPage] currentRecord:', currentRecord.value)
-  console.log('[TimerPage] segments:', segments.value)
-  console.log('[TimerPage] isRunning:', isRunning.value, 'isPaused:', isPaused.value)
-  
   if (!currentRecord.value) {
-    console.log('[TimerPage] 没有当前记录，直接重置计时器')
     resetTimer();
     return;
   }
@@ -461,7 +441,6 @@ async function endTimer() {
   
   // 计算总时长（所有片段的总和）
   const totalDuration = segments.value.reduce((sum, segment) => sum + segment.duration, 0);
-  console.log('[TimerPage] 计算的总时长:', totalDuration)
   
   // 创建完整的专注记录
   const newRecord = {
@@ -474,12 +453,9 @@ async function endTimer() {
     updatedAt: Date.now()
   };
   
-  console.log('[TimerPage] 准备保存的专注记录:', newRecord)
-  
   try {
     // 写入数据库
-    const savedRecord = await timerRecordDB.create(newRecord);
-    console.log('[TimerPage] 专注记录保存成功:', savedRecord)
+    await timerRecordDB.create(newRecord);
   } catch (error) {
     console.error('[TimerPage] 保存专注记录失败:', error)
     ElMessage.error('保存专注记录失败')
@@ -493,7 +469,7 @@ async function endTimer() {
     focusHistoryRef.value.loadRecords();
   }
   
-  ElMessage.success(`专注完成，总时长: ${formatDuration(totalDuration)}`);
+  ElMessage.success(`专注完成：${currentRecord.value.taskName}，总时长: ${formatDuration(totalDuration)}`);
 }
 
 // 重置计时器
@@ -532,13 +508,38 @@ function handleRecordAdded() {
 }
 
 onMounted(async () => {
+  // 先注册事件监听器
+  eventBus.on('start-task-timer-activate', async (taskId: string) => {
+    // 确保任务数据已加载
+    if (taskTreeData.value.length === 0) {
+      await loadTasks()
+    }
+    
+    if (selectedTaskId.value !== taskId) {
+      selectedTaskId.value = taskId
+    }
+    
+    // 等待下一个 tick，确保 selectedTask 计算属性已更新
+    await nextTick()
+    
+    if (!isRunning.value) {
+      if (selectedTask.value) {
+        await startTimer()
+      } else {
+        ElMessage.error('无法找到选中的任务，请重试')
+      }
+    } else {
+      ElMessage.info('计时器已在运行中')
+    }
+  })
+  
+  // 然后加载数据
   await loadTasks();
+  
   restoreTimerState();
   
   // 如果恢复后是running，自动启动interval
   if (isRunning.value) {
-    console.log('[TimerPage] 恢复运行状态，选中的任务:', selectedTask.value);
-    
     // 重新创建当前记录和片段（如果状态恢复后是running）
     if (!currentRecord.value && selectedTask.value) {
       currentRecord.value = {
@@ -555,8 +556,6 @@ onMounted(async () => {
         startTime: startTime.value,
         duration: elapsedSeconds.value
       }];
-      
-      console.log('[TimerPage] 重新创建了当前记录:', currentRecord.value);
     }
     
     if (timerId) clearInterval(timerId);
@@ -566,31 +565,6 @@ onMounted(async () => {
       saveTimerState();
     }, 1000);
   }
-  // 只监听在 App.vue 转发过来的专用事件，避免潜在循环
-  eventBus.on('start-task-timer-activate', async (taskId: string) => {
-    console.log('[TimerPage] 接收到 start-task-timer-activate 事件:', taskId)
-    
-    // 确保任务数据已加载
-    if (taskTreeData.value.length === 0) {
-      console.log('[TimerPage] 任务数据未加载，正在加载...')
-      await loadTasks()
-    }
-    
-    if (selectedTaskId.value !== taskId) {
-      console.log('[TimerPage] 设置选中的任务ID:', taskId)
-      selectedTaskId.value = taskId
-    }
-    
-    // 等待下一个 tick，确保 selectedTask 计算属性已更新
-    await nextTick()
-    
-    if (!isRunning.value) {
-      console.log('[TimerPage] 开始计时，选中的任务:', selectedTask.value)
-      await startTimer()
-    } else {
-      console.log('[TimerPage] 计时器已在运行中')
-    }
-  })
 });
 
 onUnmounted(() => {
@@ -599,6 +573,8 @@ onUnmounted(() => {
     timerId = null;
   }
   saveTimerState(); // 只保存当前状态
+  // 清理事件监听器
+  eventBus.off('start-task-timer-activate');
 });
 </script>
 

@@ -34,6 +34,11 @@
         <el-form-item>
           <el-button type="primary" style="width:100%" @click="onSaveTask">{{ props.taskId ? '保存修改' : '保存任务' }}</el-button>
         </el-form-item>
+        
+        <!-- 编辑模式下显示删除按钮 -->
+        <el-form-item v-if="props.taskId">
+          <el-button type="danger" style="width:100%" @click="onDeleteTask">删除任务</el-button>
+        </el-form-item>
       </el-form>
     </el-card>
   </el-dialog>
@@ -42,6 +47,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { Calendar, ArrowRight } from '@element-plus/icons-vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import DatePanelContent from './DatePanelContent.vue'
 import { taskDB } from '@/utils/dbManager'
 import { TaskStatus } from '@/types/task.d'
@@ -170,6 +176,37 @@ async function onSaveTask() {
   emit('update:modelValue', false)
   emit('task-saved')
   eventBus.emit('global-refresh')
+}
+
+// 删除任务
+async function onDeleteTask() {
+  if (!props.taskId) return
+  
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个任务吗？删除后无法恢复。',
+      '删除任务',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    // 删除任务
+    await taskDB.delete(props.taskId)
+    
+    ElMessage.success('任务已删除')
+    
+    // 关闭对话框并通知父组件
+    emit('update:modelValue', false)
+    eventBus.emit('global-refresh')
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除任务失败')
+      console.error('删除任务失败:', error)
+    }
+  }
 }
 </script>
 

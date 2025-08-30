@@ -25,18 +25,7 @@
         <span v-else class="task-date">无日期</span>
       </div>
     </div>
-    <div class="task-actions">
-      <el-button
-        type="danger"
-        size="small"
-        circle
-        class="delete-btn"
-        @click="onDeleteTask"
-        title="删除任务"
-      >
-        <el-icon><Delete /></el-icon>
-      </el-button>
-    </div>
+    <!-- 删除按钮已移除 -->
     <div class="task-divider"></div>
     <Teleport to="body">
       <div
@@ -68,7 +57,6 @@
           </div>
         </div>
         <div class="context-menu-item" @click.stop="onStartTimer">开始计时</div>
-        <div class="context-menu-item" @click.stop="onDeleteTask" style="color:#f56c6c;">删除任务</div>
       </div>
     </Teleport>
     <TaskDetailPanel
@@ -105,8 +93,8 @@ import { ref, nextTick, onMounted, onBeforeUnmount, computed } from 'vue'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import { taskDB } from '@/utils/dbManager'
 import { eventBus } from '@/utils/eventBus'
-import { ElMessage, ElMessageBox, ElButton, ElIcon } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElButton, ElIcon } from 'element-plus'
+
 
 /**
  * 任务卡片组件
@@ -171,8 +159,6 @@ function showMenu(e: MouseEvent) {
     zIndex: 19999 // 提高z-index，防止被遮挡
   }
   menuVisible.value = true
-  // 调试日志
-  console.log('[TaskCard] showMenu at', menuStyle.value.left, menuStyle.value.top, 'for task', props.task.id);
 }
 function onClickOutside(e: MouseEvent) {
   if (!menuVisible.value) return
@@ -186,11 +172,7 @@ onMounted(() => {
   eventBus.on('show-task-menu', ({ event, taskId }) => {
     // 兼容字符串和数字类型
     if (String(taskId) === String(props.task.id)) {
-      console.log('[TaskCard] show-task-menu received for', taskId, props.task.id);
       showMenu(event);
-    } else {
-      // 便于调试
-      // console.log('[TaskCard] show-task-menu ignored', taskId, props.task.id);
     }
   });
 });
@@ -238,10 +220,7 @@ async function onCheckTask(checked: boolean) {
 const showMoveMenu = ref(false)
 const moveProjects = computed(() => {
   const all = props.allProjects || []
-  const filtered = all.filter(p => String(p.id) !== String(props.task.projectId))
-  console.log('[TaskCard] allProjects:', all)
-  console.log('[TaskCard] moveProjects:', filtered)
-  return filtered
+  return all.filter(p => String(p.id) !== String(props.task.projectId))
 })
 async function onMoveTo(projectId: string) {
   await taskDB.update(props.task.id, { projectId })
@@ -252,56 +231,40 @@ async function onMoveTo(projectId: string) {
 
 async function onStartTimer() {
   const state = JSON.parse(localStorage.getItem('taskmap-timer-state') || '{}')
+  
   if (state.status === 'running') {
     if (state.selectedTaskId === props.task.id) {
-      await ElMessageBox.alert('该任务已在计时中', '提示', { center: true })
+      ElMessage.warning('该任务已在计时中')
       menuVisible.value = false
       return
     } else {
-      await ElMessageBox.alert('已有其他任务正在计时，请先结束当前计时任务', '提示', { center: true })
+      ElMessage.warning('已有其他任务正在计时，请先结束当前计时任务')
       menuVisible.value = false
       return
     }
   }
-  eventBus.emit('start-task-timer', props.task.id)
-  await ElMessageBox.alert('已开始计时', '提示', { center: true })
+  
+  try {
+    eventBus.emit('start-task-timer', props.task.id)
+  } catch (error) {
+    console.error('[TaskCard] 发送事件失败:', error)
+  }
+  
+  ElMessage.success('已开始计时')
   menuVisible.value = false
 }
 
-async function onDeleteTask() {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这个任务吗？删除后无法恢复。',
-      '删除任务',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'error',
-      }
-    )
-    
-    await taskDB.delete(props.task.id)
-    emit('refresh')
-    eventBus.emit('global-refresh')
-    menuVisible.value = false
-    ElMessage.success('任务已删除')
-  } catch (error) {
-    // 用户取消操作
-  }
-}
+// 删除任务功能已移至任务详情面板
 
 const showTaskDetailPanel = ref(false)
 let clickTimer: NodeJS.Timeout | null = null
 
 function openTaskDetail(e: MouseEvent) {
-  console.log('[TaskCard] openTaskDetail called', e)
   if (isEditing.value) {
-    console.log('[TaskCard] isEditing is true, returning')
     return
   }
   // 只允许左键点击
   if (e && e.button !== 0) {
-    console.log('[TaskCard] not left click, returning')
     return
   }
   
@@ -314,7 +277,6 @@ function openTaskDetail(e: MouseEvent) {
   
   // 设置延迟，等待可能的双击事件
   clickTimer = setTimeout(() => {
-    console.log('[TaskCard] setting showTaskDetailPanel to true')
     showTaskDetailPanel.value = true
     clickTimer = null
   }, 200) // 200ms延迟
@@ -414,33 +376,7 @@ async function onTaskDetailSaved() {
   font-weight: 500;
   box-shadow: 0 1px 4px #b0b0b022;
 }
-.task-actions {
-  display: flex;
-  align-items: center;
-  margin-left: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.task-card:hover .task-actions {
-  opacity: 1;
-}
-
-.delete-btn {
-  width: 24px !important;
-  height: 24px !important;
-  padding: 0 !important;
-  border: none !important;
-  background: rgba(245, 108, 108, 0.1) !important;
-  color: #f56c6c !important;
-  transition: all 0.2s !important;
-}
-
-.delete-btn:hover {
-  background: #f56c6c !important;
-  color: white !important;
-  transform: scale(1.1);
-}
+/* 删除按钮相关样式已移除 */
 
 .task-divider {
   position: absolute;
