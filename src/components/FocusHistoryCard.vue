@@ -31,8 +31,10 @@ function formatTimeRange(record: any) {
   
   // 如果有segments字段，说明是多段记录
   if (record.segments && record.segments.length > 0) {
-    const firstSegment = record.segments[0];
-    const lastSegment = record.segments[record.segments.length - 1];
+    // 按开始时间排序片段
+    const sortedSegments = [...record.segments].sort((a, b) => (a.startTime || 0) - (b.startTime || 0));
+    const firstSegment = sortedSegments[0];
+    const lastSegment = sortedSegments[sortedSegments.length - 1];
     
     const startDate = new Date(firstSegment.startTime);
     const endDate = new Date(lastSegment.endTime);

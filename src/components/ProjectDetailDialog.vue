@@ -192,11 +192,10 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ArrowLeft, MoreFilled, Folder, Flag, Clock, Timer, Delete, Plus, FolderOpened } from '@element-plus/icons-vue'
-import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
+import { ElDialog, ElButton, ElIcon, ElSelect, ElOption, ElProgress, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
 import { ProjectType, ProjectStatus } from '@/types/project.d'
 import { taskDB, projectDB, timerRecordDB } from '@/utils/dbManager'
 import SetDateDialog from './SetDateDialog.vue'
-import { getIconSVG } from '@/icons/icons'
 import TaskDetailPanel from './TaskDetailPanel.vue'
 import 'element-plus/es/components/tree/style/css'
 import TaskList from './TaskList.vue'
@@ -385,20 +384,7 @@ onMounted(loadProjectTotalDuration)
 watch([unfinishedTree, finishedList], loadProjectTotalDuration)
 eventBus.on('global-refresh', loadProjectTotalDuration)
 
-// 复用TaskPage的日期格式化
-const formatDate = (timestamp: number) => {
-  if (!timestamp) return ''
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffTime = date.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return '今天'
-  if (diffDays === 1) return '明天'
-  if (diffDays === -1) return '昨天'
-  if (diffDays > 0 && diffDays <= 7) return `${diffDays}天后`
-  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)}天前`
-  return date.toLocaleDateString()
-}
+
 
 // 监听项目变化，重新加载任务
 watch(() => props.project?.id, () => {
@@ -437,15 +423,6 @@ watch(
   { immediate: true }
 )
 
-function toDateStr(val: number | string | Date | null | undefined): string {
-  if (!val) return ''
-  const d = new Date(val)
-  if (isNaN(d.getTime())) return ''
-  const y = d.getFullYear()
-  const m = (d.getMonth() + 1).toString().padStart(2, '0')
-  const day = d.getDate().toString().padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 const formatDeadlineDate = () => {
   if (!props.project?.endDate) return ''
@@ -494,17 +471,6 @@ function handleCreateTask() {
 watch(() => showTaskPanel.value, (val) => {
   if (!val) setTimeout(() => loadProjectTasks(), 200)
 })
-
-const formatShortDate = (timestamp: number) => {
-  const date = new Date(timestamp)
-  return `${date.getMonth() + 1}月${date.getDate()}日`
-}
-
-async function onUpdateTaskName(task, newName) {
-  task.name = newName
-  // 直接更新数据库
-  await taskDB.update(task.id, { name: newName })
-}
 
 onMounted(async () => {
   loadProjectTasks()
@@ -603,28 +569,6 @@ function onTaskSaved() {
   loadProjectTasks()
   emit('project-task-changed')
 }
-
-async function onMoveTask({ task, project }) {
-  // 更新任务的 projectId
-  await taskDB.update(task.id, { projectId: project.id })
-  // 重新加载项目任务列表
-  await loadProjectTasks()
-  // 通知父组件任务已变更
-  emit('project-task-changed')
-}
-
-function onNodeDrop(draggingNode, dropNode, dropType, ev) {
-  // 这里实现 parentId、顺序等的数据库更新逻辑
-  // draggingNode.data, dropNode.data, dropType
-  // dropType: 'before' | 'after' | 'inner'
-  // 你可以根据 dropType 更新 parentId 和排序
-  // 更新后调用 loadProjectTasks() 刷新
-}
-
-const unfinishedTasks = computed(() => tasks.value.filter(t => !t.isCompleted))
-const finishedTasks = computed(() => tasks.value.filter(t => t.isCompleted))
-const totalTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id)).length)
-const completedTasks = computed(() => (props.allTasks as any[]).filter(t => String((t as any).projectId) === String(props.project.id) && ((t as any).status === 'completed' || (t as any).isCompleted)).length)
 
 // 项目任务的计算属性
 const projectUnfinishedTasks = computed(() => unfinishedTree.value)

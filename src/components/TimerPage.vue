@@ -14,11 +14,14 @@
              label: 'label',
              value: 'id'
            }"
-           placeholder="选择任务"
+           placeholder="选择任务或输入新任务名称按回车创建"
            style="width: 220px"
            clearable
            filterable
+           allow-create
+           default-first-option
            @change="onTaskChange"
+           @create="onCreateTask"
            :render-after-expand="false"
          />
        </div>
@@ -70,7 +73,7 @@ const pauseStartTime = ref<number>(0);
 const totalPausedTime = ref(0);
 
 // 开始计时
-function startTimer() {
+async function startTimer() {
   console.log('[TimerPage] startTimer 被调用，selectedTask:', selectedTask.value)
   if (!selectedTask.value) {
     console.log('[TimerPage] 没有选中的任务，无法开始计时')
@@ -80,7 +83,7 @@ function startTimer() {
   
   // 如果当前有正在进行的记录，先结束它
   if (currentRecord.value && (isRunning.value || isPaused.value)) {
-    endTimer();
+    await endTimer();
   }
   
   isRunning.value = true;
@@ -308,30 +311,37 @@ async function loadTasks() {
 }
 
 function onTaskChange() {
-  if (selectedTask.value && selectedTask.value.type === 'task') {
-    ElMessage.success(`已选择任务：${selectedTask.value.name}`);
-  } else if (selectedTaskId.value && !selectedTask.value) {
-    // 如果选择了项目或状态组，清空选择
-    selectedTaskId.value = null;
-    ElMessage.warning('请选择具体的任务，而不是项目或状态组');
+  // 检查选中的是否是任务节点
+  if (selectedTaskId.value) {
+    // 递归查找选中的节点
+    const findNode = (nodes: any[]): any => {
+      for (const node of nodes) {
+        if (node.id === selectedTaskId.value) {
+          return node;
+        }
+        if (node.children) {
+          const found = findNode(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const selectedNode = findNode(taskTreeData.value);
+    
+    if (selectedNode && selectedNode.type === 'task') {
+      ElMessage.success(`已选择任务：${selectedNode.task.name}`);
+    } else if (selectedNode && (selectedNode.type === 'project' || selectedNode.type === 'status-group' || selectedNode.type === 'unassigned-group')) {
+      // 如果选择了项目或状态组，清空选择
+      selectedTaskId.value = null;
+      ElMessage.warning('请选择具体的任务，而不是项目或状态组');
+    }
   }
 }
 
 // 创建新任务处理
 async function onCreateTask(inputValue: string) {
   if (!inputValue || inputValue.trim() === '') return;
-  
-  // 检查任务是否已存在
-  const existingTask = tasks.value.find(task => 
-    task.name.toLowerCase() === inputValue.trim().toLowerCase()
-  );
-  
-  if (existingTask) {
-    // 如果任务已存在，选择它
-    selectedTaskId.value = existingTask.id;
-    ElMessage.success(`已选择现有任务：${existingTask.name}`);
-    return;
-  }
   
   try {
     // 创建新任务
@@ -345,8 +355,8 @@ async function onCreateTask(inputValue: string) {
       updatedAt: Date.now()
     });
     
-    // 添加到任务列表
-    tasks.value.push(newTask);
+    // 重新加载任务列表以更新树形数据
+    await loadTasks();
     
     // 选择新创建的任务
     selectedTaskId.value = newTask.id;
@@ -380,7 +390,10 @@ function clearTimerState() {
 
 function restoreTimerState() {
   const state = JSON.parse(localStorage.getItem(TIMER_STATE_KEY) || '{}');
-  if (state.selectedTaskId) selectedTaskId.value = state.selectedTaskId;
+  if (state.selectedTaskId) {
+    selectedTaskId.value = state.selectedTaskId;
+    console.log('[TimerPage] 恢复选中的任务ID:', state.selectedTaskId);
+  }
   if (typeof state.startTime === 'number') startTime.value = state.startTime;
 
   // 默认
@@ -441,8 +454,9 @@ async function endTimer() {
   // 结束最后一个片段
   if (segments.value.length > 0) {
     const lastSegment = segments.value[segments.value.length - 1];
-    lastSegment.endTime = Date.now();
-    lastSegment.duration = Math.floor((Date.now() - lastSegment.startTime) / 1000);
+    const endTime = Date.now();
+    lastSegment.endTime = endTime;
+    lastSegment.duration = Math.floor((endTime - lastSegment.startTime) / 1000);
   }
   
   // 计算总时长（所有片段的总和）
@@ -517,11 +531,34 @@ function handleRecordAdded(record: any) {
   }
 }
 
-onMounted(() => {
-  loadTasks();
+onMounted(async () => {
+  await loadTasks();
   restoreTimerState();
+  
   // 如果恢复后是running，自动启动interval
   if (isRunning.value) {
+    console.log('[TimerPage] 恢复运行状态，选中的任务:', selectedTask.value);
+    
+    // 重新创建当前记录和片段（如果状态恢复后是running）
+    if (!currentRecord.value && selectedTask.value) {
+      currentRecord.value = {
+        taskId: selectedTask.value.id,
+        taskName: selectedTask.value.name,
+        startTime: startTime.value,
+        segments: [],
+        status: 'running'
+      };
+      
+      // 创建片段
+      segments.value = [{
+        id: generateSegmentId(),
+        startTime: startTime.value,
+        duration: elapsedSeconds.value
+      }];
+      
+      console.log('[TimerPage] 重新创建了当前记录:', currentRecord.value);
+    }
+    
     if (timerId) clearInterval(timerId);
     timerId = window.setInterval(() => {
       elapsedSeconds.value++;
@@ -549,7 +586,7 @@ onMounted(() => {
     
     if (!isRunning.value) {
       console.log('[TimerPage] 开始计时，选中的任务:', selectedTask.value)
-      startTimer()
+      await startTimer()
     } else {
       console.log('[TimerPage] 计时器已在运行中')
     }
