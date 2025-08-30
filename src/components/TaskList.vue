@@ -54,8 +54,76 @@ const visibleIdSet = computed(() => {
   return s
 })
 
-function onNodeDrop(...args: any[]) {
-  // 透传事件，父组件可监听
+function onNodeDrop(draggingNode: any, dropNode: any, dropType: string, ev: any) {
+  // 处理拖拽排序
+  const draggedTask = draggingNode.data
+  const dropTask = dropNode.data
+  
+  if (!draggedTask || !draggedTask.id) return
+  
+  // 获取同级任务列表
+  const siblings = getSiblingTasks(draggingNode)
+  if (!siblings) return
+  
+  // 计算新的order值
+  let newOrder = 0
+  
+  if (dropType === 'before') {
+    // 拖拽到目标节点之前
+    newOrder = dropTask.order || 0
+  } else if (dropType === 'after') {
+    // 拖拽到目标节点之后
+    newOrder = (dropTask.order || 0) + 1
+  } else if (dropType === 'inner') {
+    // 拖拽到目标节点内部（作为子任务）
+    // 这里需要处理父子关系的逻辑
+    return
+  }
+  
+  // 批量更新同级任务的order
+  updateSiblingOrders(siblings, draggedTask.id, newOrder)
+}
+
+// 获取同级任务列表
+function getSiblingTasks(node: any) {
+  if (!node.parent) return props.tasks // 根级别任务
+  
+  const parent = node.parent
+  return parent.data ? parent.data.subTasks : parent.childNodes.map((n: any) => n.data)
+}
+
+// 批量更新同级任务排序
+async function updateSiblingOrders(siblings: any[], draggedTaskId: string, newOrder: number) {
+  try {
+    const { taskDB } = await import('@/utils/dbManager')
+    
+    // 过滤掉被拖拽的任务，重新排序
+    const otherSiblings = siblings.filter(task => task.id !== draggedTaskId)
+    
+    // 根据新位置重新分配order值
+    const updates = []
+    
+    // 更新被拖拽任务的order
+    updates.push(taskDB.update(draggedTaskId, { order: newOrder }))
+    
+    // 更新其他任务的order
+    let currentOrder = 0
+    for (const task of otherSiblings) {
+      if (currentOrder === newOrder) {
+        currentOrder++ // 跳过被拖拽任务的位置
+      }
+      updates.push(taskDB.update(task.id, { order: currentOrder }))
+      currentOrder++
+    }
+    
+    // 批量执行更新
+    await Promise.all(updates)
+    
+    // 触发刷新事件
+    eventBus.emit('global-refresh')
+  } catch (error) {
+    console.error('更新任务排序失败:', error)
+  }
 }
 function onNodeContextMenu(event, data, node, comp) {
   event.preventDefault();
