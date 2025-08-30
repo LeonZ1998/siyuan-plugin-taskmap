@@ -134,7 +134,16 @@ export class MemoryStore {
 
   // Timer Records
   listTimerRecords() { return this.data.timerRecords }
-  async createTimerRecord(r: any) { const item = { ...r, id: r.id || generatePrefixedSiyuanId('ttm') }; this.data.timerRecords.push(item); await this.save(); return item }
+  async createTimerRecord(r: any) { 
+    console.log('[MemoryStore] createTimerRecord 被调用，输入:', r)
+    const item = { ...r, id: r.id || generatePrefixedSiyuanId('ttm') }; 
+    console.log('[MemoryStore] 生成的记录项:', item)
+    this.data.timerRecords.push(item); 
+    console.log('[MemoryStore] 当前 timerRecords 数量:', this.data.timerRecords.length)
+    await this.save(); 
+    console.log('[MemoryStore] 保存完成')
+    return item 
+  }
   async updateTimerRecord(id: string, patch: any) { const it = this.data.timerRecords.find(r => r.id === id); if (!it) return false; Object.assign(it, patch); await this.save(); return true }
   async deleteTimerRecord(id: string) { this.data.timerRecords = this.data.timerRecords.filter(r => r.id !== id); await this.save(); return true }
   async clearTimerRecords() { this.data.timerRecords = []; await this.save() }

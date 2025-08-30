@@ -9,7 +9,7 @@
         <div class="stat-title">总专注时长</div>
         <div class="stat-value">{{ totalDuration }}</div>
       </div>
-      <el-button v-if="showClearBtn" type="danger" size="small" style="margin-left:24px;" @click="onClearRecords">清空专注记录</el-button>
+
     </div>
     
     <!-- 日期选择器 -->
@@ -61,43 +61,90 @@
           <span style="font-size:18px;font-weight:600;">{{ detailRecord.taskName }}</span>
         </div>
         
-        <div style="margin-bottom:16px;padding:12px;background:#f5f5f5;border-radius:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:14px;color:#666;">总专注时长</span>
-            <span style="font-size:16px;font-weight:600;color:#347cff;">{{ detailRecord.totalDuration }}</span>
-          </div>
-          <div style="margin-top:4px;font-size:12px;color:#999;">
-            {{ detailRecord.records.length }} 次专注记录
-          </div>
+                 <div style="margin-bottom:16px;padding:12px;background:#181c20;border-radius:8px;border:1px solid #2a2e32;">
+           <div style="display:flex;justify-content:space-between;align-items:center;">
+             <span style="font-size:14px;color:#aaa;">总专注时长</span>
+             <span style="font-size:16px;font-weight:600;color:#6cb4ff;">{{ calculateTotalDuration() }}</span>
+           </div>
+           <div style="margin-top:4px;font-size:12px;color:#888;">
+             {{ calculateTotalSessions() }} 次专注
+           </div>
         </div>
 
-        <div style="max-height:300px;overflow-y:auto;">
-          <div v-for="(record, index) in detailRecord.records" :key="record.id" 
-               style="margin-bottom:12px;padding:12px;border:1px solid #e4e7ed;border-radius:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:14px;font-weight:500;">第 {{ index + 1 }} 次专注</span>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:14px;color:#347cff;font-weight:600;">{{ formatDuration(record.duration) }}</span>
-                <el-button 
-                  type="danger" 
-                  size="small" 
-                  text 
-                  @click="onDeleteSingleRecord(record, index)"
-                  style="padding:4px 8px;"
-                >
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </div>
-            </div>
-            <div style="font-size:13px;color:#666;margin-bottom:6px;">
-              <el-icon><Clock /></el-icon>
-              {{ formatDateTime(record.startTime) }} - {{ formatTime(record.endTime) }}
-            </div>
-            <div v-if="record.note" style="font-size:13px;color:#666;background:#fafafa;padding:8px;border-radius:4px;">
-              {{ record.note }}
-            </div>
-          </div>
-        </div>
+                 <div style="max-height:300px;overflow-y:auto;">
+           <!-- 为每个片段创建独立的专注卡片 -->
+           <div v-for="(record, index) in detailRecord.records" :key="record.id">
+             <!-- 如果记录有多个片段，为每个片段创建独立卡片 -->
+             <div v-if="record.segments && record.segments.length > 0">
+               <div v-for="(segment, segIndex) in record.segments" :key="segment.id || segIndex" 
+                    style="margin-bottom:12px;padding:12px;background:#181c20;border:1px solid #2a2e32;border-radius:8px;">
+                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                   <div style="display:flex;align-items:center;gap:8px;">
+                     <span style="font-size:14px;color:#6cb4ff;font-weight:600;">{{ formatDuration(segment.duration) }}</span>
+                     <el-button 
+                       type="danger" 
+                       size="small" 
+                       text 
+                       @click="onDeleteSingleRecord(record, index)"
+                       style="padding:4px 8px;"
+                     >
+                       <el-icon><Delete /></el-icon>
+                     </el-button>
+                   </div>
+                 </div>
+                 
+                 <!-- 片段标题 -->
+                 <div style="font-size:14px;color:#aaa;margin-bottom:8px;font-weight:600;">
+                   第{{ segIndex + 1 }}次专注
+                 </div>
+                 
+                 <!-- 片段时间范围（包含日期） -->
+                 <div style="font-size:13px;color:#888;margin-bottom:6px;">
+                   <el-icon><Clock /></el-icon>
+                   {{ formatDateTime(segment.startTime) }} - {{ formatTime(segment.endTime) }}
+                 </div>
+                 
+                 <!-- 片段备注 -->
+                 <div v-if="segment.note" style="font-size:12px;color:#aaa;background:#23272f;padding:8px;border-radius:4px;border:1px solid #2a2e32;">
+                   {{ segment.note }}
+                 </div>
+               </div>
+             </div>
+             
+             <!-- 兼容旧格式：直接显示时间范围 -->
+             <div v-else style="margin-bottom:12px;padding:12px;background:#181c20;border:1px solid #2a2e32;border-radius:8px;">
+               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                 <div style="display:flex;align-items:center;gap:8px;">
+                   <span style="font-size:14px;color:#6cb4ff;font-weight:600;">{{ formatDuration(record.duration || record.totalDuration || 0) }}</span>
+                   <el-button 
+                     type="danger" 
+                     size="small" 
+                     text 
+                     @click="onDeleteSingleRecord(record, index)"
+                     style="padding:4px 8px;"
+                   >
+                     <el-icon><Delete /></el-icon>
+                   </el-button>
+                 </div>
+               </div>
+               
+               <!-- 记录标题 -->
+               <div style="font-size:14px;color:#aaa;margin-bottom:8px;font-weight:600;">
+                 专注记录
+               </div>
+               
+               <!-- 时间范围（包含日期） -->
+               <div style="font-size:13px;color:#888;margin-bottom:6px;">
+                 <el-icon><Clock /></el-icon>
+                 {{ formatDateTime(record.startTime) }} - {{ formatTime(record.endTime) }}
+               </div>
+               
+               <div v-if="record.note" style="font-size:12px;color:#aaa;background:#23272f;padding:8px;border-radius:4px;border:1px solid #2a2e32;">
+                 {{ record.note }}
+               </div>
+             </div>
+           </div>
+         </div>
       </template>
       <template #footer>
         <el-button type="danger" @click="onDeleteDetail">
@@ -160,14 +207,15 @@ const selectedDateRecords = computed(() => {
     const recordDateStr = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}`;
     
     if (recordDateStr === selectedDate.value) {
-      if (!groups[record.taskId]) {
-        groups[record.taskId] = {
+      // 每条专注记录都应该独立显示，因为每次"开始"都创建新记录
+      const key = `${record.taskId}_${record.id}`;
+      if (!groups[key]) {
+        groups[key] = {
           taskId: record.taskId,
           taskName: record.taskName,
-          records: []
+          records: [record]
         };
       }
-      groups[record.taskId].records.push(record);
     }
   });
   
@@ -177,13 +225,58 @@ const selectedDateRecords = computed(() => {
 // 选中日期的总时长
 const selectedDateTotalDuration = computed(() => {
   return selectedDateRecords.value.reduce((total, group) => {
-    return total + group.records.reduce((sum, record) => sum + (record.duration || 0), 0);
+    return total + group.records.reduce((sum, record) => {
+      // 如果是多段记录，使用totalDuration；否则使用duration
+      if (record.segments && record.segments.length > 0) {
+        return sum + (record.totalDuration || 0);
+      } else {
+        return sum + (record.duration || 0);
+      }
+    }, 0);
   }, 0);
 });
 
 function onShowDetail(record: any) {
   detailRecord.value = { ...record };
   showDetailDialog.value = true;
+}
+
+// 计算专注记录详情页面的总时长
+function calculateTotalDuration() {
+  if (!detailRecord.value || !detailRecord.value.records) return '0m';
+  
+  let totalSeconds = 0;
+  detailRecord.value.records.forEach((record: any) => {
+    if (record.segments && record.segments.length > 0) {
+      // 多段记录，累加所有片段的时长
+      record.segments.forEach((segment: any) => {
+        totalSeconds += segment.duration || 0;
+      });
+    } else {
+      // 单段记录，使用记录的时长
+      totalSeconds += record.duration || record.totalDuration || 0;
+    }
+  });
+  
+  return formatDuration(totalSeconds);
+}
+
+// 计算专注记录详情页面的总专注次数
+function calculateTotalSessions() {
+  if (!detailRecord.value || !detailRecord.value.records) return 0;
+  
+  let totalSessions = 0;
+  detailRecord.value.records.forEach((record: any) => {
+    if (record.segments && record.segments.length > 0) {
+      // 多段记录，累加所有片段
+      totalSessions += record.segments.length;
+    } else {
+      // 单段记录，算作1次
+      totalSessions += 1;
+    }
+  });
+  
+  return totalSessions;
 }
 
 function formatDateTime(ts: number) {
@@ -246,8 +339,23 @@ const todayRecords = computed(() => timerRecords.value.filter(r => {
   const recordDateStr = `${recordDate.getFullYear()}年${recordDate.getMonth() + 1}月${recordDate.getDate()}日`;
   return recordDateStr === todayStr;
 }));
-const todayDuration = computed(() => formatDuration(todayRecords.value.reduce((sum, r) => sum + (r.duration || 0), 0)));
-const totalDuration = computed(() => formatDuration(timerRecords.value.reduce((sum, r) => sum + (r.duration || 0), 0)));
+const todayDuration = computed(() => formatDuration(todayRecords.value.reduce((sum, r) => {
+  // 如果是多段记录，使用totalDuration；否则使用duration
+  if (r.segments && r.segments.length > 0) {
+    return sum + (r.totalDuration || 0);
+  } else {
+    return sum + (r.duration || 0);
+  }
+}, 0)));
+
+const totalDuration = computed(() => formatDuration(timerRecords.value.reduce((sum, r) => {
+  // 如果是多段记录，使用totalDuration；否则使用duration
+  if (r.segments && r.segments.length > 0) {
+    return sum + (r.totalDuration || 0);
+  } else {
+    return sum + (r.duration || 0);
+  }
+}, 0)));
 
 async function onDeleteDetail() {
   if (detailRecord.value && detailRecord.value.records) {
@@ -283,7 +391,14 @@ async function onDeleteSingleRecord(record: any, index: number) {
     }
     
     // 重新计算总时长
-    const totalSeconds = detailRecord.value.records.reduce((sum, r) => sum + (r.duration || 0), 0);
+    const totalSeconds = detailRecord.value.records.reduce((sum, r) => {
+      // 如果是多段记录，使用totalDuration；否则使用duration
+      if (r.segments && r.segments.length > 0) {
+        return sum + (r.totalDuration || 0);
+      } else {
+        return sum + (r.duration || 0);
+      }
+    }, 0);
     const m = Math.floor(totalSeconds / 60);
     const h = Math.floor(m / 60);
     const mm = m % 60;
@@ -300,11 +415,7 @@ async function onDeleteSingleRecord(record: any, index: number) {
   }
 }
 
-const showClearBtn = import.meta.env.MODE === 'development';
-async function onClearRecords() {
-  await timerRecordDB.clear();
-  await loadRecords();
-}
+
 
 function handleRecordAdded(record: any) {
   addRecord(record);

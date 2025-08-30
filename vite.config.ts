@@ -28,12 +28,19 @@ export default defineConfig(({
 
   const siyuanWorkspacePath = VITE_SIYUAN_WORKSPACE_PATH
   let devDistDir = './dev'
+  
+  // 设置默认的思源笔记路径（Windows）
+  const defaultSiyuanPath = 'D:/Siyuan'
+  
   if (!siyuanWorkspacePath) {
     console.log("\nSiyuan workspace path is not set.")
+    console.log(`Using default path: ${defaultSiyuanPath}`)
+    devDistDir = `${defaultSiyuanPath}/data/plugins/${pluginInfo.name}`
   } else {
     console.log(`\nSiyuan workspace path is set:\n${siyuanWorkspacePath}`)
     devDistDir = `${siyuanWorkspacePath}/data/plugins/${pluginInfo.name}`
   }
+  
   if (VITE_DEV_DIST_DIR) {
     console.log(`\nDev dist dir is set:\n${VITE_DEV_DIST_DIR}`)
     devDistDir = VITE_DEV_DIST_DIR

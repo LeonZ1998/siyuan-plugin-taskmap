@@ -32,14 +32,48 @@
       </div>
       <div class="main-content">
         <div v-if="currentPage === 'project'">
-          <ProjectPage 
-            v-for="project in projects"
-            :key="project.id + '-' + allTasks.length"
-            :project="project"
-            :all-tasks="allTasks"
-            :theme="currentTheme"
-            @click="handleProjectCardClick(project)"
-          />
+          <!-- 活跃项目折叠面板 -->
+          <el-collapse v-model="activeCollapse" accordion>
+            <el-collapse-item name="active" :disabled="activeProjects.length === 0">
+              <template #title>
+                <span class="collapse-title">
+                  <span class="project-label">活跃项目</span>
+                  <el-badge :value="activeProjects.length" :hidden="activeProjects.length === 0" class="project-badge" />
+                </span>
+              </template>
+              <div class="project-list">
+                <ProjectPage 
+                  v-for="project in activeProjects"
+                  :key="project.id + '-active-' + allTasks.length"
+                  :project="project"
+                  :all-tasks="allTasks"
+                  :theme="currentTheme"
+                  @click="handleProjectCardClick(project)"
+                />
+              </div>
+            </el-collapse-item>
+
+            <!-- 已归档项目折叠面板 -->
+            <el-collapse-item name="archived" :disabled="archivedProjects.length === 0">
+              <template #title>
+                <span class="collapse-title">
+                  <span class="project-label">已归档项目</span>
+                  <el-badge :value="archivedProjects.length" :hidden="archivedProjects.length === 0" class="project-badge" />
+                </span>
+              </template>
+              <div class="project-list">
+                <ProjectPage 
+                  v-for="project in archivedProjects"
+                  :key="project.id + '-archived-' + allTasks.length"
+                  :project="project"
+                  :all-tasks="allTasks"
+                  :theme="currentTheme"
+                  @click="handleProjectCardClick(project)"
+                />
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+
           <TaskList
             v-if="projects.length > 0"
             :tasks="tasks"
@@ -72,7 +106,9 @@ import {
   Document,
   Edit,
   Timer,
-  Plus
+  Plus,
+  Folder,
+  FolderOpened
 } from '@element-plus/icons-vue'
 import ProjectPage from './components/ProjectPage.vue'
 import TaskPage from './components/TaskPage.vue'
@@ -93,6 +129,16 @@ const tasks = ref<any[]>([])
 const showProjectDialog = ref(false)
 const selectedProject = ref<any>(null)
 const allTasks = ref([])
+const activeCollapse = ref('active')
+
+// 计算属性：分离活跃项目和已归档项目
+const activeProjects = computed(() => {
+  return projects.value.filter(project => project.status !== 'archived')
+})
+
+const archivedProjects = computed(() => {
+  return projects.value.filter(project => project.status === 'archived')
+})
 
 const inputPlaceholder = computed(() => {
   return currentPage.value === 'project' ? '添加一个新项目...' : '添加一个新任务...'
@@ -128,7 +174,7 @@ const handleEnter = async () => {
       await loadProjects()
       inputText.value = ''
     } catch (error) {}
-  } else if (currentPage.value === 'task') {
+  } else if (currentPage.value === 'task' || currentPage.value === 'timer') {
     const taskName = inputText.value.trim() || '未命名任务'
     try {
       await taskDB.create({
@@ -245,6 +291,50 @@ onBeforeUnmount(() => {
 .main-nav, .input-bar, .main-content {
   background: var(--main-bg);
   color: var(--main-text);
+  padding: 16px;
+}
+
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// 折叠面板标题样式
+:deep(.el-collapse-item__header) {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.collapse-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .project-label {
+    font-weight: 600;
+    font-size: 16px;
+  }
+  
+  .project-badge {
+    display: flex;
+    align-items: center;
+    margin-top: 1px; // 微调垂直位置，与文字基线对齐
+    
+    :deep(.el-badge__content) {
+      background-color: #4285f4;
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      min-width: 20px;
+      height: 20px;
+      line-height: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
 }
 
 .main-nav {

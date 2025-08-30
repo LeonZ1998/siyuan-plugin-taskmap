@@ -37,9 +37,21 @@
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="archive" :disabled="props.project?.status === 'archived'">
+                <el-dropdown-item 
+                  command="archive"
+                  :class="{ 'is-active': props.project?.status !== 'archived' }"
+                  :disabled="props.project?.status === 'archived'"
+                >
                   <el-icon><Folder /></el-icon>
                   归档项目
+                </el-dropdown-item>
+                <el-dropdown-item 
+                  command="unarchive"
+                  :class="{ 'is-active': props.project?.status === 'archived' }"
+                  :disabled="props.project?.status !== 'archived'"
+                >
+                  <el-icon><FolderOpened /></el-icon>
+                  取消归档项目
                 </el-dropdown-item>
                 <el-dropdown-item command="delete" divided>
                   <el-icon style="color: #f56c6c;"><Delete /></el-icon>
@@ -179,7 +191,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
-import { ArrowLeft, MoreFilled, Folder, Flag, Clock, Timer, Delete, Plus } from '@element-plus/icons-vue'
+import { ArrowLeft, MoreFilled, Folder, Flag, Clock, Timer, Delete, Plus, FolderOpened } from '@element-plus/icons-vue'
 import { ElDialog, ElButton, ElIcon, ElAvatar, ElSelect, ElOption, ElProgress, ElInput, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessageBox } from 'element-plus'
 import { ProjectType, ProjectStatus } from '@/types/project.d'
 import { taskDB, projectDB, timerRecordDB } from '@/utils/dbManager'
@@ -527,6 +539,28 @@ async function handleProjectAction(command: string) {
       // 更新项目状态为已归档
       await projectDB.update(projectId, { status: ProjectStatus.ARCHIVED })
       props.project.status = ProjectStatus.ARCHIVED
+      
+      // 关闭对话框
+      emit('update:modelValue', false)
+      emit('close')
+    } catch (error) {
+      // 用户取消操作
+    }
+  } else if (command === 'unarchive') {
+    try {
+      await ElMessageBox.confirm(
+        '确定要取消归档这个项目吗？取消归档后项目将重新显示在活跃项目列表中。',
+        '取消归档项目',
+        {
+          confirmButtonText: '确定取消',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+      
+      // 更新项目状态为未归档
+      await projectDB.update(projectId, { status: ProjectStatus.ACTIVE })
+      props.project.status = ProjectStatus.ACTIVE
       
       // 关闭对话框
       emit('update:modelValue', false)
@@ -1378,5 +1412,29 @@ html.dark :deep(.el-checkbox__inner) {
 }
 html.dark :deep(.el-checkbox__input.is-checked .el-checkbox__inner::after) {
   border-color: #fff !important;
+}
+
+// 下拉菜单项激活状态样式
+:deep(.el-dropdown-menu__item.is-active) {
+  color: #409eff !important;
+  font-weight: 600 !important;
+}
+
+:deep(.el-dropdown-menu__item.is-active:hover) {
+  color: #409eff !important;
+}
+
+// 下拉菜单项禁用状态样式
+:deep(.el-dropdown-menu__item.is-disabled) {
+  color: #c0c4cc !important;
+  cursor: not-allowed !important;
+}
+
+:deep(.el-dropdown-menu__item.is-disabled:hover) {
+  color: #c0c4cc !important;
+}
+
+:deep(.el-dropdown-menu__item.is-disabled .el-icon) {
+  color: #c0c4cc !important;
 }
 </style> 
