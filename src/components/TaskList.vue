@@ -10,7 +10,6 @@
       :expand-on-click-node="false"
       @node-drop="onNodeDrop"
       :empty-text="''"
-      @node-contextmenu="onNodeContextMenu"
     >
       <template #default="{ data }">
         <TaskCard
@@ -33,6 +32,7 @@ import TaskCard from './TaskCard.vue'
 import { ElTree } from 'element-plus'
 import { eventBus } from '@/utils/eventBus'
 import { computed } from 'vue'
+import { taskDB } from '@/utils/dbManager'
 const props = defineProps({
   tasks: { type: Array, default: () => [] },
   showProjectName: { type: Boolean, default: true },
@@ -95,8 +95,6 @@ function getSiblingTasks(node: any) {
 // 批量更新同级任务排序
 async function updateSiblingOrders(siblings: any[], draggedTaskId: string, newOrder: number) {
   try {
-    const { taskDB } = await import('@/utils/dbManager')
-    
     // 过滤掉被拖拽的任务，重新排序
     const otherSiblings = siblings.filter(task => task.id !== draggedTaskId)
     
@@ -125,15 +123,7 @@ async function updateSiblingOrders(siblings: any[], draggedTaskId: string, newOr
     console.error('更新任务排序失败:', error)
   }
 }
-function onNodeContextMenu(event, data, node, comp) {
-  event.preventDefault();
-  
-  try {
-    eventBus.emit('show-task-menu', { event, taskId: data.id });
-  } catch (error) {
-    console.error('[TaskList] 发送 show-task-menu 事件失败:', error)
-  }
-}
+
 </script>
 
 <style scoped>

@@ -1,5 +1,5 @@
 <template>
-  <div class="task-card" :class="{ 'is-subtask': !!props.indent, 'is-completed': task.isCompleted }">
+  <div class="task-card" :class="{ 'is-subtask': !!props.indent, 'is-completed': task.isCompleted }" @contextmenu="showMenu">
     <div class="task-left">
       <el-checkbox class="task-checkbox" :model-value="task.isCompleted" @change="onCheckTask" />
     </div>
@@ -9,6 +9,7 @@
         class="task-name"
         @dblclick.left="startEdit"
         @click.left="openTaskDetail"
+        @contextmenu="showMenu"
         tabindex="0"
       >{{ task.name }}</span>
       <input
@@ -153,17 +154,21 @@ const menuVisible = ref(false)
 const menuStyle = ref({ left: '0px', top: '0px', zIndex: 9999 })
 function showMenu(e: MouseEvent) {
   e.preventDefault()
+  e.stopPropagation()
+  console.log('[TaskCard] 右键菜单触发，任务ID:', props.task.id)
   menuStyle.value = {
     left: e.clientX + 'px',
     top: e.clientY + 'px',
     zIndex: 19999 // 提高z-index，防止被遮挡
   }
   menuVisible.value = true
+  console.log('[TaskCard] 菜单样式:', menuStyle.value, '菜单可见:', menuVisible.value)
 }
 function onClickOutside(e: MouseEvent) {
   if (!menuVisible.value) return
   const menu = document.querySelector('.context-menu')
   if (menu && !menu.contains(e.target as Node)) {
+    console.log('[TaskCard] 点击外部，关闭菜单')
     menuVisible.value = false
   }
 }
@@ -175,10 +180,11 @@ onMounted(() => {
       showMenu(event);
     }
   });
+  console.log('[TaskCard] 组件已挂载，任务ID:', props.task.id)
 });
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', onClickOutside)
-  eventBus.off('show-task-menu');
+  eventBus.off('show-task-menu')
 })
 
 const showAddSubTaskPanel = ref(false)
@@ -403,6 +409,9 @@ async function onTaskDetailSaved() {
   color: var(--el-text-color-primary, #fff);
   overflow: visible; /* 关键：允许子菜单溢出 */
   pointer-events: auto;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 .context-menu-item {
   padding: 10px 24px;
