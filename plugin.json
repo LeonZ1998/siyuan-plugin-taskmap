@@ -2,7 +2,7 @@
   "name": "siyuan-plugin-taskmap",
   "author": "LeonZ1998",
   "url": "https://github.com/LeonZ1998/siyuan-plugin-taskmap",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "minAppVersion": "2.10.0",
   "backends": [
     "all"
