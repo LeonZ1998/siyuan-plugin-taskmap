@@ -524,7 +524,7 @@ function formatDuration(seconds: number) {
 
 const showAddFocusDialog = ref(false);
 
-function handleRecordAdded(record: any) {
+function handleRecordAdded() {
   // 刷新专注历史记录
   if (focusHistoryRef.value && focusHistoryRef.value.loadRecords) {
     focusHistoryRef.value.loadRecords();

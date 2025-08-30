@@ -73,7 +73,7 @@
 
                  <div style="max-height:300px;overflow-y:auto;">
            <!-- 使用按时间排序的片段 -->
-           <div v-for="(item, index) in sortedSegments" :key="`${item.record.id}_${item.segmentIndex}`" 
+           <div v-for="(item) in sortedSegments" :key="`${item.record.id}_${item.segmentIndex}`" 
                 style="margin-bottom:12px;padding:12px;background:#181c20;border:1px solid #2a2e32;border-radius:8px;">
              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                <div style="display:flex;align-items:center;gap:8px;">
